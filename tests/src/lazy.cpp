@@ -7,7 +7,7 @@ SCENARIO("lazy", "[lazy]")
 {
     GIVEN("a lazy value")
     {
-        stdsharp::lazy lazy{[]() { return string{"foo"}; }};
+        lazy lazy{[]() { return string{"foo"}; }};
 
         WHEN("get value")
         {
@@ -24,7 +24,7 @@ SCENARIO("lazy", "[lazy]")
         STATIC_REQUIRE(
             []
             {
-                stdsharp::lazy lazy{[]() { return value; }};
+                lazy lazy{[]() { return value; }};
                 return lazy.get();
             }() == value
         );

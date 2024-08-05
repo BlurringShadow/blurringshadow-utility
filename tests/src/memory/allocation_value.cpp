@@ -7,7 +7,7 @@ STDSHARP_TEST_NAMESPACES;
 template<typename ValueType>
 struct test_data
 {
-    using allocator_type = std::allocator<stdsharp::byte>;
+    using allocator_type = allocator<stdsharp::byte>;
     using allocation_traits = allocation_traits<allocator_type>;
     static constexpr array<int, 3> data{1, 2, 3};
 

@@ -1,8 +1,11 @@
 name: Fetch Clang toolchain on Linux
+description: Install LLVM by official script on Linux
 
 inputs:
   llvm-ver:
     required: true
+    description: LLVM version
+
 runs:
   using: composite
 

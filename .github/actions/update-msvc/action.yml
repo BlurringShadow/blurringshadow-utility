@@ -1,4 +1,5 @@
 name: Update MSVC toolchain on Windows
+description: Run Visual Studio update by PowerShell script
 
 runs:
   using: composite

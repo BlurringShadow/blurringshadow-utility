@@ -148,10 +148,7 @@ namespace stdsharp
         template<std::size_t Index>
         using remove_at_t = replace_t<Index>;
 
-        constexpr operator regular_value_sequence<Values...>() const noexcept
-        {
-            return {};
-        }
+        constexpr operator regular_value_sequence<Values...>() const noexcept { return {}; }
     };
 }
 

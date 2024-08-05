@@ -3,7 +3,6 @@
 
 #include <catch2/catch_test_macros.hpp>
 
-
 STDSHARP_TEST_NAMESPACES;
 
 SCENARIO("random concept", "[random]")

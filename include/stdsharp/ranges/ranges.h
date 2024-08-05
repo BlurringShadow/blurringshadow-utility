@@ -131,7 +131,8 @@ namespace stdsharp::details
         }
 
         template<typename R, typename Diff = std::ranges::range_difference_t<R>, typename... Args>
-            requires (sizeof...(Args) >= 1) && std::invocable<index_fn, std::invoke_result_t<Fn, R, Diff>, Args...>
+            requires(sizeof...(Args) >= 1) &&
+            std::invocable<index_fn, std::invoke_result_t<Fn, R, Diff>, Args...>
         constexpr decltype(auto) operator()(R&& r, const Diff& i, Args&&... args) const
         {
             return (*this)((*this)(cpp_forward(r), i), cpp_forward(args)...);

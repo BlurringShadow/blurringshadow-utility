@@ -5,7 +5,6 @@
 
 #include <gsl/pointers>
 
-
 namespace stdsharp::details
 {
     template<expr_req ExprReq, typename Ret, typename... Args>

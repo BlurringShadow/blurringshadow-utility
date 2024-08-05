@@ -68,7 +68,7 @@ namespace stdsharp
         using m_dispatchers = details::box_traits<Req, Alloc>::dispatchers;
 
         indexed_values<m_dispatchers, std::size_t> values_{};
-        std::reference_wrapper<const std::type_info> type_ = type_info<void>;
+        cttid_t type_;
 
         constexpr decltype(auto) dispatchers(this auto&& self) noexcept
         {
@@ -86,18 +86,18 @@ namespace stdsharp
             ForwardCast(self).dispatchers()(cpp_forward(args)...);
         }
 
-        [[nodiscard]] auto& type() const noexcept { return type_.get(); }
+        [[nodiscard]] auto& type() const noexcept { return type_; }
 
         constexpr bool operator==(const allocation_value& other) const noexcept
         {
-            return type_.get() == other.type_.get();
+            return type_ == other.type_;
         }
 
         template<typename T, typename Op = allocation_value<Alloc, T>>
             requires details::box_type_compatible<Req, Alloc, T>
         explicit constexpr allocation_value(const std::in_place_type_t<T> /*unused*/) noexcept:
             values_(m_dispatchers{Op{}, Op{}, Op{}, Op{}, Op{}}, std::size_t{sizeof(T)}),
-            type_(type_info<T>)
+            type_(cttid<T>)
         {
         }
 
@@ -557,7 +557,7 @@ namespace stdsharp
         [[nodiscard]] constexpr auto is_type() const noexcept
         {
             if constexpr(std::constructible_from<allocation_value, std::in_place_type_t<T>>)
-                return allocation_value_.type() == type_info<T>;
+                return allocation_value_.type() == cttid<T>;
             else return false;
         }
 

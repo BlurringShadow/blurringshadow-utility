@@ -1,5 +1,5 @@
 name: cmake build and test
-description: use cmake to build project and run ctest
+description: Run cmake setup with vcpkg and ninja. Build the project with custom config options. Finally test.
 
 inputs:
   build-type:
@@ -34,7 +34,7 @@ runs:
     - name: Setup vcpkg
       uses: lukka/run-vcpkg@v11
       with:
-        vcpkgGitCommitId: 59aeb8fe8fe1c980de6bd5ba634cf21024522d81
+        vcpkgGitCommitId: fe1cde61e971d53c9687cf9a46308f8f55da19fa
         vcpkgDirectory: ${{ inputs.vcpkg-root }}
         doNotCache: false
 

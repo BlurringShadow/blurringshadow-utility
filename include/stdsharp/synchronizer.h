@@ -52,10 +52,7 @@ namespace stdsharp
             return local{
                 .value = static_cast<cast_t>(value),
                 .lock =
-                    Lock{
-                        forward_cast<Self&, synchronizer>(self).lockable_,
-                        cpp_forward(args)...
-                    }
+                    Lock{forward_cast<Self&, synchronizer>(self).lockable_, cpp_forward(args)...}
             };
         }
 

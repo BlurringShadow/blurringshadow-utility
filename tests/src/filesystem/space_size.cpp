@@ -14,7 +14,9 @@ SCENARIO("space size", "[filesystem][space size]")
 
     STATIC_REQUIRE((1_bits + 1_bits) == 2_bits);
 
-#if !(defined(__clang_analyzer__) && defined(_MSC_VER)) // TODO: https://github.com/llvm/llvm-project/issues/93271
+#if !(                                               \
+    defined(__clang_analyzer__) && defined(_MSC_VER) \
+) // TODO: https://github.com/llvm/llvm-project/issues/93271
     REQUIRE(format("{}", 42_KB) == "42KB");
     REQUIRE(format("{:-<10.2}", 1.2_GB) == "1.2GB-----");
     REQUIRE(format("{:->10.2}", 1.2_GB) == "-----1.2GB");

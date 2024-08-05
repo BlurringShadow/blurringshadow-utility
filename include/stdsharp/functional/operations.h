@@ -171,10 +171,7 @@ namespace stdsharp
     template<typename T>
     struct identity_with_fn
     {
-        constexpr decltype(auto) operator()(T&& t) const noexcept
-        {
-            return cpp_forward(t);
-        }
+        constexpr decltype(auto) operator()(T&& t) const noexcept { return cpp_forward(t); }
     };
 
     template<typename T>

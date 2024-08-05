@@ -71,7 +71,6 @@ namespace stdsharp::details
         { is >> v } -> std::same_as<IS&>;
     };
 
-
     template<
         typename D,
         typename T = D::result_type,

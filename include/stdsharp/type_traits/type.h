@@ -6,6 +6,7 @@
 #include <range/v3/functional/pipeable.hpp>
 
 #include <compare>
+#include <typeinfo>
 
 namespace stdsharp
 {
@@ -319,8 +320,39 @@ namespace stdsharp
     template<bool Noexcept, typename Ret, typename T, typename... Args>
     using mem_func_pointer = details::mem_func_pointer<Noexcept, Ret, T, Args...>::type;
 
+    // compile time type id, basically constexpr version of std::type_index
+    struct cttid_t : std::reference_wrapper<const std::type_info>
+    {
+    private:
+        struct default_t
+        {
+        };
+
+    public:
+        constexpr cttid_t(const std::type_info& info = typeid(default_t)) noexcept:
+            reference_wrapper(info)
+        {
+        }
+
+        constexpr bool operator==(const cttid_t& other) const noexcept
+        {
+            return get() == other.get();
+        }
+
+        std::strong_ordering operator<=>(const cttid_t& other) const noexcept
+        {
+            return *this == other ? //
+                std::strong_ordering::equal :
+                get().before(other.get()) ? //
+                    std::strong_ordering::less :
+                    std::strong_ordering::greater;
+        }
+
+        bool operator>(const cttid_t& other) const noexcept { return other.get().before(get()); }
+    };
+
     template<typename T>
-    inline constexpr auto type_info = std::ref(typeid(T));
+    inline constexpr cttid_t cttid{typeid(T)};
 
     template<typename T>
     concept constant_value = cpp_is_constexpr(T::value);
@@ -419,4 +451,16 @@ namespace stdsharp
 
         constexpr bool operator==(const empty_t /*unused*/) const noexcept { return true; }
     } empty;
+}
+
+namespace std
+{
+    template<>
+    struct hash<::stdsharp::cttid_t>
+    {
+        decltype(auto) operator()(const ::stdsharp::cttid_t& id) const noexcept
+        {
+            return id.get().hash_code();
+        }
+    };
 }

@@ -124,7 +124,6 @@ namespace stdsharp::filesystem
         literal                                                                     \
     }
 
-
 #define STDSHARP_FILESYSTEM_SPACE_SIZE_OPERATOR_IMPL(period, unit_name, literal)           \
     namespace details                                                                      \
     {                                                                                      \

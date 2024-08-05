@@ -3,8 +3,9 @@
 #include "../compare/compare.h"
 #include "../functional/operations.h"
 
-#include <algorithm>
 #include <gsl/gsl>
+
+#include <algorithm>
 
 namespace stdsharp
 {

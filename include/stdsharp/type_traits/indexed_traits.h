@@ -16,7 +16,6 @@ namespace stdsharp::details
     {
         using size_t = std::size_t;
 
-
         template<size_t I, typename = std::index_sequence_for<T...>>
         struct t;
 

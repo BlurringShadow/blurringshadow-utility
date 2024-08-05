@@ -54,7 +54,7 @@ TEMPLATE_TEST_CASE(
     "Scenario: value sequence invoke",
     "[type traits][value sequence]",
     identity,
-    decltype([](stdsharp::same_as_any<int, size_t, array<char, 11>> auto) {})
+    decltype([](same_as_any<int, size_t, array<char, 11>> auto) {})
 )
 {
     STATIC_REQUIRE(invocable<test_seq::invoke_fn<>, TestType>);
@@ -261,7 +261,7 @@ SCENARIO("tuple traits for regular type sequence", "[type traits][value sequence
 
     {
         using type_seq = regular_type_sequence<int, char, float>;
-        STATIC_REQUIRE(::stdsharp::adl_proofed_for<type_seq, ::stdsharp::basic_type_sequence>);
+        STATIC_REQUIRE(adl_proofed_for<type_seq, basic_type_sequence>);
         STATIC_REQUIRE(tuple_size_v<type_seq> == 3);
     }
 }
