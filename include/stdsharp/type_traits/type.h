@@ -1,12 +1,12 @@
 #pragma once
 
-#include "../functional/invoke.h"
+#include "../concepts/type.h"
 #include "regular_type_sequence.h"
 
-#include <range/v3/functional/pipeable.hpp>
-
 #include <compare>
+#include <functional>
 #include <typeinfo>
+
 
 namespace stdsharp
 {
@@ -250,7 +250,7 @@ namespace stdsharp
     };
 
     template<auto Ptr>
-    using function_pointer_traits = function_traits<decltype(Ptr)>;
+    using make_function_traits = function_traits<decltype(Ptr)>;
 
     template<bool Noexcept, typename Ret, typename... Args>
     using func_pointer = Ret (*)(Args...) noexcept(Noexcept);
@@ -263,19 +263,6 @@ namespace stdsharp
     {
         using type = T;
         using class_t = ClassT;
-    };
-
-    template<auto Ptr>
-    struct member_pointer_traits : member_traits<decltype(Ptr)>
-    {
-        static constexpr auto ptr = Ptr;
-
-        constexpr auto operator()(auto&&... args) const
-            noexcept(noexcept(invoke(ptr, cpp_forward(args)...))) //
-            -> decltype(invoke(ptr, cpp_forward(args)...))
-        {
-            return invoke(ptr, cpp_forward(args)...);
-        }
     };
 
 #define STDSHARP_MEMBER_FUNCTION_TRAITS(const_, volatile_, ref_, noexcept_, qualifiers)       \
@@ -315,10 +302,16 @@ namespace stdsharp
     concept member_of = std::same_as<typename member_traits<T>::class_t, ClassT>;
 
     template<auto Ptr>
-    using member_t = member_pointer_traits<Ptr>::type;
+    using make_member_traits = member_traits<decltype(Ptr)>;
+
+    template<auto Ptr>
+    using member_t = make_member_traits<Ptr>::type;
 
     template<bool Noexcept, typename Ret, typename T, typename... Args>
     using mem_func_pointer = details::mem_func_pointer<Noexcept, Ret, T, Args...>::type;
+
+    template<typename ClassT, typename T>
+    using mem_pointer = T ClassT::*;
 
     // compile time type id, basically constexpr version of std::type_index
     struct cttid_t : std::reference_wrapper<const std::type_info>
@@ -391,12 +384,6 @@ namespace stdsharp
         constexpr empty_t(const auto&... /*unused*/) noexcept {}
 
         constexpr bool operator!() const noexcept { return true; }
-
-        template<std::constructible_from T>
-        explicit constexpr operator T() const noexcept(nothrow_constructible_from<T>)
-        {
-            return T{};
-        }
 
         constexpr const auto* operator->() const noexcept { return this; }
 

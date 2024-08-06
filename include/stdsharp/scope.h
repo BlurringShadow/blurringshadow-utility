@@ -1,77 +1,151 @@
 #pragma once
 
-#include "enumeration.h"
+#include "stdsharp/tuple/get.h"
+#include "type_traits/indexed_traits.h"
 #include "type_traits/object.h"
 
-#include <exception>
-#include <optional>
+#include <memory>
 
-namespace stdsharp::scope
+namespace stdsharp::details
 {
-    enum class exit_fn_policy : std::uint8_t
+    struct unique_resource_traits
     {
-        on_success = 0b01,
-        on_failure = 0b10,
-        on_exit = on_success | on_failure
-    };
-
-    template<flag<exit_fn_policy> Policy, nothrow_invocable Fn>
-    struct [[nodiscard]] scoped : // NOLINT(*-special-member-functions)
-        private std::optional<Fn>,
-        unique_object
-    {
-    private:
-        constexpr void execute() noexcept
+        template<typename T, nothrow_invocable<T> D>
+        class impl : public unique_object // NOLINT(*-special-member-functions)
         {
-            invoke(cpp_move(this->value()));
-            this->reset();
+        private:
+            using indexed_values = indexed_values<T, D>;
+
+            indexed_values compressed_;
+
+            bool released_ = false;
+
+            constexpr auto& get() noexcept { return cpo::get_element<0>(compressed_); }
+
+            constexpr auto& get_deleter() noexcept { return cpo::get_element<1>(compressed_); }
+
+        public:
+            impl() = default;
+
+            template<typename U, typename V>
+                requires std::constructible_from<T, U> && std::constructible_from<D, V>
+            constexpr impl(U&& resource, V&& deleter)
+                noexcept(nothrow_constructible_from<T, U> && nothrow_constructible_from<D, V>):
+                compressed_(cpp_forward(resource), cpp_forward(deleter))
+            {
+            }
+
+            constexpr impl(impl&& other)
+                noexcept(nothrow_move_constructible<T> && nothrow_move_constructible<D>)
+                requires std::move_constructible<T> && std::move_constructible<D>
+                : compressed_(cpp_move(other.resource_), cpp_move(other.deleter_))
+            {
+                other.released_ = true;
+            }
+
+            constexpr impl& operator=(impl&& other)
+                noexcept(nothrow_move_assignable<T> && nothrow_move_assignable<D>)
+            {
+                compressed_ = cpp_move(other.compressed_);
+                other.released_ = true;
+            }
+
+            constexpr ~impl() { release(); }
+
+            constexpr auto& get() const noexcept { return cpo::get_element<0>(compressed_); }
+
+            constexpr auto& get_deleter() const noexcept
+            {
+                return cpo::get_element<1>(compressed_);
+            }
+
+            constexpr void release() noexcept
+            {
+                if(released_) return;
+                invoke(get_deleter(), get());
+                released_ = true;
+            }
+
+            template<typename... Args>
+            constexpr void emplace(Args&&... args)
+                noexcept(nothrow_constructible_from<T, Args...> && nothrow_move_assignable<T>)
+            {
+                release();
+                get() = T{cpp_forward(args)...};
+                released_ = false;
+            }
+
+            constexpr void reset() noexcept { release(); }
+
+            template<typename U = T>
+            constexpr void reset(U&& r) noexcept(noexcept(emplace(cpp_forward(r))))
+                requires requires { emplace(cpp_forward(r)); }
+            {
+                emplace(cpp_forward(r));
+            }
         };
 
-    public:
-        using exit_fn_t = Fn;
-
-        template<typename... Args>
-            requires std::constructible_from<Fn, Args...>
-        constexpr explicit scoped(Args&&... args) noexcept(nothrow_constructible_from<Fn, Args...>):
-            std::optional<Fn>(std::in_place, cpp_forward(args)...)
+        template<nothrow_invocable D>
+        class impl<void, D> : public unique_object // NOLINT(*-special-member-functions)
         {
-        }
+        private:
+            D deleter_;
 
-        static constexpr auto policy = Policy;
+            constexpr auto& get_deleter() noexcept { return deleter_; }
 
-        constexpr ~scoped()
-        {
-            if(!this->has_value()) return;
+        public:
+            impl() = default;
 
-            if constexpr(policy == exit_fn_policy::on_exit) execute();
-            else if(std::is_constant_evaluated() || std::uncaught_exceptions() == 0)
+            template<typename U>
+                requires std::constructible_from<D, U>
+            constexpr impl(U&& deleter) noexcept(nothrow_constructible_from<D, U>):
+                deleter_(cpp_forward(deleter))
             {
-                if constexpr(policy.contains(exit_fn_policy::on_success)) execute();
             }
-            else
+
+            constexpr impl(impl&& other) noexcept(nothrow_move_constructible<D>)
+                requires std::move_constructible<D>
+                : deleter_(cpp_move(other.deleter_))
             {
-                if constexpr(policy.contains(exit_fn_policy::on_failure)) execute();
+                other.release();
             }
-        }
-    };
 
-    template<exit_fn_policy Policy>
-    struct make_scoped_fn
-    {
-    private:
-        template<typename Fn>
-        using scoped_t = scoped<Policy, std::decay_t<Fn>>;
+            constexpr impl& operator=(impl&& other) noexcept(nothrow_move_assignable<D>)
+            {
+                other.release();
+                get_deleter() = cpp_move(other.get_deleter());
+            }
 
-    public:
-        template<typename Fn>
-            requires std::constructible_from<scoped_t<Fn>, Fn>
-        constexpr scoped_t<Fn> operator()(Fn&& fn) const
-            noexcept(nothrow_constructible_from<scoped_t<Fn>, Fn>)
+            constexpr ~impl() { release(); }
+
+            constexpr auto& get_deleter() const noexcept { return deleter_; }
+
+            constexpr void release() noexcept { invoke(get_deleter(), get()); }
+        };
+
+        template<typename T, typename D>
+        struct impl_traits
         {
-            return cpp_forward(fn);
-        }
-    };
+            using type = impl<T, D>;
+        };
 
-    template<exit_fn_policy Policy>
-    inline constexpr make_scoped_fn<Policy> make_scoped{};
+        template<typename T, typename D>
+            requires requires { std::unique_ptr<T, D>{}; }
+        struct impl_traits<T, D>
+        {
+            using type = std::unique_ptr<T, D>;
+        };
+
+        template<typename T, typename D>
+        using type = typename impl_traits<T, D>::type;
+    };
+}
+
+namespace stdsharp
+{
+    template<typename T, typename D = std::default_delete<T>>
+    using unique_resource = details::unique_resource_traits::type<T, D>;
+
+    template<typename D>
+    using resource_deleter = unique_resource<void, D>;
 }

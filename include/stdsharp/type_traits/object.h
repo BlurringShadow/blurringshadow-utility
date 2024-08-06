@@ -235,6 +235,32 @@ namespace stdsharp
     };
 
     inline constexpr make_inherited_fn make_inherited{};
+
+    template<auto Ptr>
+    struct function_pointer_traits : function_traits<decltype(Ptr)>
+    {
+        static constexpr auto ptr = Ptr;
+
+        constexpr auto operator()(auto&&... args) const
+            noexcept(noexcept(invoke(ptr, cpp_forward(args)...))) //
+            -> decltype(invoke(ptr, cpp_forward(args)...))
+        {
+            return invoke(ptr, cpp_forward(args)...);
+        }
+    };
+
+    template<auto Ptr>
+    struct member_pointer_traits : member_traits<decltype(Ptr)>
+    {
+        static constexpr auto ptr = Ptr;
+
+        constexpr auto operator()(auto&&... args) const
+            noexcept(noexcept(invoke(ptr, cpp_forward(args)...))) //
+            -> decltype(invoke(ptr, cpp_forward(args)...))
+        {
+            return invoke(ptr, cpp_forward(args)...);
+        }
+    };
 }
 
 #include "../compilation_config_out.h"

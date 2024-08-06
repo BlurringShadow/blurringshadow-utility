@@ -2,7 +2,7 @@
 
 STDSHARP_TEST_NAMESPACES;
 
-SCENARIO("type info compare")
+SCENARIO("type id compare")
 {
     static_assert(cttid<int> == cttid<int>); // NOLINT
     static_assert(cttid<int> != cttid<float>);
