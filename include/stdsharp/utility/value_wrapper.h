@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../concepts/object.h"
 #include "forward_cast.h"
 
 #include "../compilation_config_in.h"

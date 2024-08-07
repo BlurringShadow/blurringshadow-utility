@@ -3,8 +3,6 @@
 #include <concepts>
 #include <mutex> // IWYU pragma: export
 
-using namespace std::literals;
-
 namespace stdsharp
 {
     template<typename T>

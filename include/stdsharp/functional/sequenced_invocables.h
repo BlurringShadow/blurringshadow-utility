@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../functional/invoke.h"
 #include "../type_traits/indexed_traits.h"
 
 #include "../compilation_config_in.h"

@@ -2,6 +2,7 @@
 
 #include "../compare/compare.h"
 #include "../functional/operations.h"
+#include "../functional/invoke.h"
 
 #include <gsl/gsl>
 

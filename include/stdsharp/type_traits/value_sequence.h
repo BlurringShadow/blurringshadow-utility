@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../functional/always_return.h"
+#include "../functional/invoke.h"
 #include "details/seq_traits.h"
 #include "indexed_traits.h"
 #include "regular_value_sequence.h"
@@ -110,12 +111,13 @@ namespace stdsharp
         static constexpr struct for_each_fn
         {
         private:
-            static constexpr auto impl(auto&& value, auto& func, auto& condition) noexcept(
-                nothrow_invocable<decltype(func), decltype(value)> &&
-                nothrow_predicate<decltype(condition), const decltype(value)&> //
+            template<typename T>
+            static constexpr auto impl(T&& value, auto& func, auto& condition) noexcept(
+                nothrow_invocable<decltype(func), T> &&
+                nothrow_predicate<decltype(condition), const T&> //
             )
             {
-                if(!invoke_r<bool>(condition, std::as_const(value))) return false;
+                if(!stdsharp::invoke(condition, std::as_const(value))) return false;
 
                 stdsharp::invoke(func, cpp_forward(value));
                 return true;
@@ -123,9 +125,9 @@ namespace stdsharp
 
         public:
             template<typename Func, typename Condition = always_true_fn>
-                requires requires { invocable_test<Func>(), predicate_test<Condition>(); }
+                // requires requires { invocable_test<Func>(), predicate_test<Condition>(); }
             constexpr void operator()(Func func, Condition condition = {}) const
-                noexcept(noexcept(invocable_test<Func>(), predicate_test<Condition>()))
+                // noexcept(noexcept(invocable_test<Func>(), predicate_test<Condition>()))
             {
                 empty = (impl(Values, func, condition) && ...);
             }
@@ -233,9 +235,9 @@ namespace stdsharp::value_sequence_algo
         using algo = details::value_sequence_algo;
 
         template<typename Func>
-            requires requires { algo::predicate_test<Seq, Func>(); }
+            // requires requires { algo::predicate_test<Seq, Func>(); }
         [[nodiscard]] constexpr auto operator()(Func func) const
-            noexcept(noexcept(algo::predicate_test<Seq, Func>()))
+            // noexcept(noexcept(algo::predicate_test<Seq, Func>()))
         {
             std::size_t i = 0;
             Seq::for_each(
@@ -299,7 +301,7 @@ namespace stdsharp::value_sequence_algo
             Seq::for_each(
                 [&i, &func](const auto& v) noexcept(nothrow_predicate<Func, decltype(v)>)
                 {
-                    if(invoke_r<bool>(func, v)) ++i;
+                    if(stdsharp::invoke(func, v)) ++i;
                 }
             );
             return i;

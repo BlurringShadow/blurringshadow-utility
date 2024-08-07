@@ -1,7 +1,7 @@
 #pragma once
 
+#include "../concepts/object.h"
 #include "../type_traits/expression.h"
-#include "../type_traits/type.h"
 
 #include <gsl/pointers>
 

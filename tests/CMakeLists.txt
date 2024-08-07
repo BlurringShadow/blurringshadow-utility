@@ -32,7 +32,7 @@ set(src
     src/type_traits/indexed_traits.cpp
     src/type_traits/int_type_1.cpp
     src/type_traits/int_type_2.cpp
-    src/type_traits/member.cpp
+    src/type_traits/object.cpp
     src/type_traits/type_sequence.cpp
     src/type_traits/type.cpp
     src/type_traits/value_sequence.cpp

@@ -7,7 +7,6 @@
 #include <functional>
 #include <typeinfo>
 
-
 namespace stdsharp
 {
     template<typename T, typename U>
@@ -16,8 +15,8 @@ namespace stdsharp
     enum class ref_qualifier : std::uint8_t
     {
         none,
-        rvalue,
-        lvalue
+        rvalue = 0b01,
+        lvalue = 0b11
     };
 
     template<typename T>

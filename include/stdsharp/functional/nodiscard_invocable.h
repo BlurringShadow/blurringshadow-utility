@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../functional/invoke.h"
 #include "../utility/value_wrapper.h"
 
 namespace stdsharp

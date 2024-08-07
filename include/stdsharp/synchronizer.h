@@ -1,5 +1,6 @@
 #pragma once
 
+#include "concepts/object.h"
 #include "mutex/mutex.h"
 #include "utility/forward_cast.h"
 
