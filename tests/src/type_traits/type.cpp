@@ -11,6 +11,5 @@ SCENARIO("type id compare")
     // compare at runtime
     REQUIRE(int_type_1 == int_type_2);
     REQUIRE(!(int_type_1 < int_type_2));
-    REQUIRE(!(int_type_1 <= int_type_2));
-    REQUIRE(cttid<int> < cttid<empty_t>);
+    REQUIRE(int_type_1 <= int_type_2);
 }

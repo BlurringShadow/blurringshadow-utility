@@ -125,9 +125,9 @@ namespace stdsharp
 
         public:
             template<typename Func, typename Condition = always_true_fn>
-                // requires requires { invocable_test<Func>(), predicate_test<Condition>(); }
+                requires requires { invocable_test<Func>(), predicate_test<Condition>(); }
             constexpr void operator()(Func func, Condition condition = {}) const
-                // noexcept(noexcept(invocable_test<Func>(), predicate_test<Condition>()))
+                noexcept(noexcept(invocable_test<Func>(), predicate_test<Condition>()))
             {
                 empty = (impl(Values, func, condition) && ...);
             }
@@ -235,9 +235,9 @@ namespace stdsharp::value_sequence_algo
         using algo = details::value_sequence_algo;
 
         template<typename Func>
-            // requires requires { algo::predicate_test<Seq, Func>(); }
+            requires requires { algo::predicate_test<Seq, Func>(); }
         [[nodiscard]] constexpr auto operator()(Func func) const
-            // noexcept(noexcept(algo::predicate_test<Seq, Func>()))
+            noexcept(noexcept(algo::predicate_test<Seq, Func>()))
         {
             std::size_t i = 0;
             Seq::for_each(

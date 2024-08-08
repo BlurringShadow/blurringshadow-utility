@@ -37,12 +37,10 @@ namespace stdsharp
         }
     };
 
-    template<typename From, typename To>
-        requires not_decay_derived<From, To> && not_decay_derived<To, From> &&
+    template<typename From, not_decay_derived<From> To>
+        requires not_decay_derived<From, To> &&
         not_same_as<std::remove_cvref_t<From>, std::remove_cvref_t<To>>
-    struct forward_cast_fn<From, To>
-    {
-    };
+    struct forward_cast_fn<From, To>;
 
     template<typename From, typename To>
     struct forward_cast_fn<From, To>
@@ -50,7 +48,7 @@ namespace stdsharp
         using from_t = std::remove_reference_t<From>;
         using cast_t = forward_cast_t<From, To>;
 
-        [[nodiscard]] constexpr decltype(auto) operator()(from_t& from) //
+        STDSHARP_INTRINSIC constexpr decltype(auto) operator()(from_t& from) //
             const noexcept
         {
             // c-style cast allow us cast to inaccessible base
@@ -58,7 +56,7 @@ namespace stdsharp
             else return static_cast<cast_t>(from);
         }
 
-        [[nodiscard]] constexpr decltype(auto) operator()(from_t&& from) //
+        STDSHARP_INTRINSIC constexpr decltype(auto) operator()(from_t&& from) //
             const noexcept
         {
             // c-style cast allow us cast to inaccessible base

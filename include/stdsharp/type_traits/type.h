@@ -347,7 +347,10 @@ namespace stdsharp
     inline constexpr cttid_t cttid{typeid(T)};
 
     template<typename T>
-    concept constant_value = cpp_is_constexpr(T::value);
+    concept constant_value = requires {
+        { T::value } noexcept;
+        requires (T::value, true);
+    };
 
     template<auto Value>
     using constant = std::integral_constant<decltype(Value), Value>;

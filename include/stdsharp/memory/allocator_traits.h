@@ -137,19 +137,6 @@ namespace stdsharp
     template<typename Alloc>
     concept allocator_req = details::allocator_req<Alloc>;
 
-    template<auto = -1>
-    struct allocator_propagation
-    {
-    };
-
-    template<bool IsEqual>
-    struct allocator_propagation<IsEqual>
-    {
-        static constexpr auto is_equal = IsEqual;
-
-        bool assigned;
-    };
-
     template<allocator_req Alloc>
     struct allocator_traits : private std::allocator_traits<Alloc>
     {
@@ -369,16 +356,6 @@ namespace stdsharp
             return alloc.try_allocate(count);
         }
 
-        using move_propagation = std::conditional_t<
-            propagate_on_move_v,
-            allocator_propagation<always_equal_v>,
-            allocator_propagation<>>;
-
-        using copy_propagation = std::conditional_t<
-            propagate_on_copy_v,
-            allocator_propagation<always_equal_v>,
-            allocator_propagation<>>;
-
         template<typename T>
         static constexpr lifetime_req type_req{
             get_expr_req(std::invocable<constructor, allocator_type&, T*>, nothrow_invocable<constructor, allocator_type&, T*>),
@@ -424,35 +401,49 @@ namespace stdsharp
     template<typename T>
     using allocator_of_t = allocator_of<T>::type;
 
-    template<typename Alloc, typename Fn>
-    concept allocator_move_assignable = std::copy_constructible<Fn> &&
-        std::invocable<Fn&, const typename allocator_traits<Alloc>::move_propagation&, Alloc&>;
+    inline constexpr struct allocator_no_propagation_t
+    {
+    } allocator_no_propagation{};
 
-    template<typename Alloc, typename Fn>
-    concept allocator_nothrow_move_assignable = nothrow_copy_constructible<Fn> &&
-        nothrow_invocable<Fn&, const typename allocator_traits<Alloc>::move_propagation&, Alloc&>;
+    template<bool IsEqual, bool IsBefore>
+    struct allocator_propagation_t
+    {
+        static constexpr auto is_equal = IsEqual;
 
-    template<typename Alloc, typename Fn>
-    concept allocator_copy_assignable = std::copy_constructible<Fn> &&
-        std::invocable<Fn&, const typename allocator_traits<Alloc>::copy_propagation&, Alloc&>;
+        static constexpr auto is_before = IsBefore;
+    };
 
-    template<typename Alloc, typename Fn>
-    concept allocator_nothrow_copy_assignable = nothrow_copy_constructible<Fn> &&
-        nothrow_invocable<Fn&, const typename allocator_traits<Alloc>::copy_propagation&, Alloc&>;
+    template<bool IsEqual, bool IsBefore>
+    struct allocator_move_propagation_t : allocator_propagation_t<IsEqual, IsBefore>
+    {
+    };
 
+    template<bool IsEqual, bool IsBefore>
+    struct allocator_copy_propagation_t : allocator_propagation_t<IsEqual, IsBefore>
+    {
+    };
+}
+
+namespace stdsharp
+{
     template<allocator_req Alloc>
     struct allocator_adaptor : Alloc
     {
         using allocator_type = Alloc;
         using traits = allocator_traits<allocator_type>;
 
+        template<bool IsEqual, bool IsBefore>
+        using move_propagation = allocator_move_propagation_t<IsEqual, IsBefore>;
+
+        template<bool IsEqual, bool IsBefore>
+        using copy_propagation = allocator_copy_propagation_t<IsEqual, IsBefore>;
+
         allocator_adaptor() = default;
 
-        [[nodiscard]] constexpr allocator_type& get_allocator() noexcept { return *this; }
-
-        [[nodiscard]] constexpr const allocator_type& get_allocator() const noexcept
+        template<typename T>
+        constexpr allocator_type& get_allocator(this T&& t) noexcept
         {
-            return *this;
+            return forward_cast<T, allocator_adaptor>(t);
         }
 
         constexpr allocator_adaptor(const std::in_place_t /*unused*/, auto&&... args)
@@ -473,67 +464,105 @@ namespace stdsharp
         }
 
     private:
-        template<bool Propagate, bool IsEqual>
-        using on_assign =
-            std::conditional_t<Propagate, allocator_propagation<IsEqual>, allocator_propagation<>>;
-
         static constexpr auto always_equal_v = traits::always_equal_v;
 
-        constexpr void equal_assign(auto&& other, auto& fn)
+    public:
+        constexpr bool is_equal(const allocator_type& other) const noexcept
         {
-            using on_assign = on_assign<true, true>;
-
-            invoke(fn, on_assign{false}, get_allocator());
-            get_allocator() = cpp_forward(other);
-            invoke(fn, on_assign{true}, get_allocator());
+            return always_equal_v || get_allocator() == other;
         }
 
-        constexpr void not_equal_assign(auto&& other, auto& fn)
+    private:
+        template<bool IsEqual, template<bool, bool> typename Propagation>
+        struct on_assign
         {
-            using on_assign = on_assign<true, false>;
+            using before_propagation = Propagation<IsEqual, true>;
+            using after_propagation = Propagation<IsEqual, false>;
 
-            invoke(fn, on_assign{false}, get_allocator());
-            get_allocator() = cpp_forward(other);
-            invoke(fn, on_assign{true}, get_allocator());
-        }
+            template<std::invocable<before_propagation> Fn>
+                requires std::invocable<Fn, after_propagation>
+            constexpr void operator()(Fn& fn, auto&& other) const //
+                noexcept(nothrow_invocable<Fn, before_propagation> && nothrow_invocable<Fn, after_propagation>)
+            {
+                invoke(cpp_forward(fn), Propagation<IsEqual, true>{});
+                ((allocator_adaptor&)fn).get_allocator() =
+                    cpp_forward(other).get_allocator(); // NOLINT
+                invoke(cpp_forward(fn), Propagation<IsEqual, false>{});
+            }
+        };
 
-        constexpr void no_assign(auto& fn)
+        template<bool Propagate, template<bool, bool> typename Propagation>
+        struct on_propagate
         {
-            invoke(fn, on_assign<false, false>{}, get_allocator());
-        }
+            using assign = on_assign<true, Propagation>;
+            using unequal_assign = on_assign<true, Propagation>;
+
+            template<typename Fn, typename Other>
+            constexpr void operator()(Fn& fn, Other&& other) const
+                noexcept(nothrow_invocable<assign, Fn&, Other>)
+                requires requires {
+                    requires Propagate;
+                    requires std::invocable<assign, Fn&, Other>;
+                }
+            {
+                assign{}(fn, cpp_forward(other));
+            }
+
+            template<typename Fn, typename Other>
+            constexpr void operator()(Fn& fn, Other&& other) const
+                noexcept(nothrow_invocable<assign, Fn&, Other> && nothrow_invocable<unequal_assign, Fn&, Other>)
+                requires requires {
+                    requires Propagate;
+                    requires !always_equal_v;
+                    requires std::invocable<assign, Fn&, Other>;
+                    requires std::invocable<unequal_assign, Fn&, Other>;
+                }
+            {
+                if(((allocator_adaptor&)fn).get_allocator() != other.get_allocator()) // NOLINT
+                {
+                    unequal_assign{}(fn, cpp_forward(other));
+                    return;
+                }
+
+                assign{}(fn, cpp_forward(other));
+            }
+
+            template<typename Fn>
+                requires requires {
+                    requires !Propagate;
+                    requires std::invocable<Fn&, allocator_no_propagation_t>;
+                }
+            constexpr void operator()(Fn& fn, auto&& /*unused*/)
+                noexcept(nothrow_invocable<Fn&, allocator_no_propagation_t>)
+            {
+                invoke(fn, allocator_no_propagation);
+            }
+        };
 
     public:
-        template<typename T>
-        constexpr void assign(const allocator_type& other, T fn)
-            noexcept(allocator_nothrow_copy_assignable<allocator_type, T>)
-            requires allocator_copy_assignable<allocator_type, T>
+        template<
+            typename Fn,
+            std::invocable<Fn&, const allocator_adaptor&> OnPropagate =
+                on_propagate<traits::propagate_on_copy_v, copy_propagation>>
+        constexpr Fn& operator=(this Fn& fn, const allocator_adaptor& other)
+            noexcept(nothrow_invocable<OnPropagate, Fn&, const allocator_adaptor&>)
         {
-            if constexpr(traits::propagate_on_copy_v)
-                if constexpr(always_equal_v) equal_assign(other, fn);
-                else
-                {
-                    if(get_allocator() == other) equal_assign(other, fn);
-                    else not_equal_assign(other, fn);
-                }
-            else no_assign(fn);
+            OnPropagate{}(fn, other);
+            return fn;
         }
 
-        template<typename T>
-        constexpr void assign(allocator_type&& other, T fn)
-            noexcept(allocator_nothrow_move_assignable<allocator_type, T>)
-            requires allocator_move_assignable<allocator_type, T>
+        template<
+            typename Fn,
+            std::invocable<Fn&, allocator_adaptor> OnPropagate =
+                on_propagate<traits::propagate_on_move_v, copy_propagation>>
+        constexpr Fn& operator=(this Fn& fn, allocator_adaptor&& other)
+            noexcept(nothrow_invocable<OnPropagate, Fn&, allocator_adaptor>)
         {
-            if constexpr(traits::propagate_on_copy_v)
-                if constexpr(always_equal_v) equal_assign(cpp_move(other), fn);
-                else
-                {
-                    if(get_allocator() == other) equal_assign(cpp_move(other), fn);
-                    else not_equal_assign(cpp_move(other), fn);
-                }
-            else no_assign(fn);
+            OnPropagate{}(fn, other);
+            return fn;
         }
 
-        constexpr void swap_with(allocator_type& other) noexcept
+        constexpr void swap(allocator_adaptor& other) noexcept
         {
             if constexpr(traits::propagate_on_swap_v)
                 std::ranges::swap(get_allocator(), other.get_allocator());
