@@ -3,7 +3,7 @@
 #include "aligned.h" // IWYU pragma: export
 #include "allocation.h" // IWYU pragma: export
 #include "allocation_traits.h" // IWYU pragma: export
-#include "allocation_value.h" // IWYU pragma: export
+#include "allocation_adaptor.h" // IWYU pragma: export
 #include "allocator_reference.h" // IWYU pragma: export
 #include "allocator_traits.h" // IWYU pragma: export
 #include "box.h" // IWYU pragma: export

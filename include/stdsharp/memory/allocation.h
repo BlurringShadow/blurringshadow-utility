@@ -80,74 +80,20 @@ namespace stdsharp
 
     template<allocator_req Alloc>
     inline constexpr allocation_result<Alloc> empty_allocation_result{};
-}
-
-namespace stdsharp::details
-{
-    template<typename Alloc>
-    struct allocation_concept
-    {
-    private:
-        struct shadow_type
-        {
-            [[nodiscard]] constexpr auto begin() const noexcept
-            {
-                return allocator_pointer<Alloc>{nullptr};
-            }
-
-            [[nodiscard]] constexpr auto end() const noexcept
-            {
-                return allocator_pointer<Alloc>{nullptr};
-            }
-
-            [[nodiscard]] constexpr auto size() const noexcept
-            {
-                return allocator_size_type<Alloc>{0};
-            }
-
-            constexpr auto& operator=(const auto& /*unused*/) noexcept { return *this; }
-        };
-
-    public:
-        template<typename T, typename LRef = std::add_lvalue_reference_t<std::decay_t<T>>>
-        static constexpr auto assignable_from_shadow = nothrow_assignable_from<LRef, shadow_type>;
-    };
-
-    template<typename T, typename Alloc>
-    concept allocation_common = requires(const T& t, std::remove_cvref_t<T> decay_t) {
-        requires nothrow_copyable<decltype(decay_t)>;
-        requires std::same_as<typename decltype(decay_t)::allocator_type, Alloc>;
-        requires std::ranges::sized_range<T>;
-        { std::ranges::size(t) } -> std::same_as<allocator_size_type<Alloc>>;
-    };
-}
-
-namespace stdsharp
-{
-    template<typename T, typename Alloc>
-    concept callocation = requires(const T& t) {
-        requires details::allocation_common<T, Alloc>;
-        { std::ranges::begin(t) } -> std::same_as<allocator_const_pointer<Alloc>>;
-    };
-
-    template<typename T, typename Alloc>
-    concept allocation = requires(const T& t) {
-        requires details::allocation_common<T, Alloc>;
-        { std::ranges::begin(t) } -> std::same_as<allocator_pointer<Alloc>>;
-
-        requires details::allocation_concept<Alloc>::template assignable_from_shadow<T>;
-
-        requires nothrow_assignable_from<T&, allocation_result<Alloc>>;
-    };
 
     template<allocator_req Alloc, typename T = Alloc::value_type>
     struct allocation_data_fn
     {
-        template<typename U>
-            requires(callocation<U, Alloc> || allocation<U, Alloc>)
-        constexpr decltype(auto) operator()(const U& rng) const noexcept
+        constexpr decltype(auto) operator()(const allocation_result<Alloc>& allocation
+        ) const noexcept
         {
-            return pointer_cast<T>(std::ranges::begin(rng));
+            return pointer_cast<T>(std::ranges::begin(allocation));
+        }
+
+        constexpr decltype(auto) operator()(const callocation_result<Alloc>& allocation
+        ) const noexcept
+        {
+            return pointer_cast<T>(std::ranges::begin(allocation));
         }
     };
 
@@ -184,9 +130,12 @@ namespace stdsharp
 
     template<typename Rng, typename Alloc>
     concept callocations = std::ranges::input_range<Rng> &&
-        callocation<range_const_reference_t<Rng>, Alloc>;
+        nothrow_convertible_to<range_const_reference_t<Rng>, const callocation_result<Alloc>&>;
 
     template<typename Rng, typename Alloc>
-    concept allocations = range_copyable<Rng, Rng> &&
-        allocation<std::ranges::range_value_t<Rng>, Alloc>;
+    concept allocations = requires(const allocation_result<Alloc>& alloction) {
+        requires callocations<Rng, Alloc>;
+        requires std::ranges::output_range<Rng, decltype(alloction)>;
+        requires nothrow_convertible_to<range_const_reference_t<Rng>, decltype(alloction)>;
+    };
 }

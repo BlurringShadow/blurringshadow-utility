@@ -37,25 +37,22 @@ namespace stdsharp
         template<typename T = value_type>
         static constexpr auto cget = allocation_cget<Alloc, T>;
 
-        template<nothrow_constructible_from<pointer, size_type> Allocation = allocation_result>
-        static constexpr allocation<Alloc> auto
+        static constexpr allocation_result
             allocate(allocator_type& alloc, const size_type size, const cvp hint = nullptr)
         {
-            return Allocation{allocator_traits::allocate(alloc, size, hint), size};
+            return {allocator_traits::allocate(alloc, size, hint), size};
         }
 
-        template<nothrow_constructible_from<pointer, size_type> Allocation = allocation_result>
-        static constexpr allocation<Alloc> auto try_allocate(
+        static constexpr allocation_result try_allocate(
             allocator_type& alloc,
             const size_type size,
             const cvp hint = nullptr
         ) noexcept
         {
-            return Allocation{allocator_traits::try_allocate(alloc, size, hint), size};
+            return {allocator_traits::try_allocate(alloc, size, hint), size};
         }
 
-        template<allocations<Alloc> View>
-        static constexpr void deallocate(allocator_type& alloc, View&& dst) noexcept
+        static constexpr void deallocate(allocator_type& alloc, allocations<Alloc> auto&& dst) noexcept
         {
             for(auto& dst_allocation : cpp_forward(dst))
             {

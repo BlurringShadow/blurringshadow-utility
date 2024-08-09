@@ -401,9 +401,17 @@ namespace stdsharp
     template<typename T>
     using allocator_of_t = allocator_of<T>::type;
 
-    inline constexpr struct allocator_no_propagation_t
+    struct allocator_no_move_propagation_t
     {
-    } allocator_no_propagation{};
+    };
+
+    struct allocator_no_copy_propagation_t
+    {
+    };
+
+    struct allocator_no_swap_propagation_t
+    {
+    };
 
     template<bool IsEqual, bool IsBefore>
     struct allocator_propagation_t
@@ -422,151 +430,9 @@ namespace stdsharp
     struct allocator_copy_propagation_t : allocator_propagation_t<IsEqual, IsBefore>
     {
     };
-}
 
-namespace stdsharp
-{
-    template<allocator_req Alloc>
-    struct allocator_adaptor : Alloc
+    template<bool IsBefore>
+    struct allocator_swap_propagation_t
     {
-        using allocator_type = Alloc;
-        using traits = allocator_traits<allocator_type>;
-
-        template<bool IsEqual, bool IsBefore>
-        using move_propagation = allocator_move_propagation_t<IsEqual, IsBefore>;
-
-        template<bool IsEqual, bool IsBefore>
-        using copy_propagation = allocator_copy_propagation_t<IsEqual, IsBefore>;
-
-        allocator_adaptor() = default;
-
-        template<typename T>
-        constexpr allocator_type& get_allocator(this T&& t) noexcept
-        {
-            return forward_cast<T, allocator_adaptor>(t);
-        }
-
-        constexpr allocator_adaptor(const std::in_place_t /*unused*/, auto&&... args)
-            noexcept(noexcept(allocator_type(cpp_forward(args)...)))
-            requires requires { allocator_type(cpp_forward(args)...); }
-            : allocator_type(cpp_forward(args)...)
-        {
-        }
-
-        constexpr allocator_adaptor(const allocator_type& other) noexcept:
-            allocator_type(traits::select_on_container_copy_construction(other))
-        {
-        }
-
-        constexpr allocator_adaptor(allocator_type&& other) noexcept:
-            allocator_type(cpp_move(other))
-        {
-        }
-
-    private:
-        static constexpr auto always_equal_v = traits::always_equal_v;
-
-    public:
-        constexpr bool is_equal(const allocator_type& other) const noexcept
-        {
-            return always_equal_v || get_allocator() == other;
-        }
-
-    private:
-        template<bool IsEqual, template<bool, bool> typename Propagation>
-        struct on_assign
-        {
-            using before_propagation = Propagation<IsEqual, true>;
-            using after_propagation = Propagation<IsEqual, false>;
-
-            template<std::invocable<before_propagation> Fn>
-                requires std::invocable<Fn, after_propagation>
-            constexpr void operator()(Fn& fn, auto&& other) const //
-                noexcept(nothrow_invocable<Fn, before_propagation> && nothrow_invocable<Fn, after_propagation>)
-            {
-                invoke(cpp_forward(fn), Propagation<IsEqual, true>{});
-                ((allocator_adaptor&)fn).get_allocator() =
-                    cpp_forward(other).get_allocator(); // NOLINT
-                invoke(cpp_forward(fn), Propagation<IsEqual, false>{});
-            }
-        };
-
-        template<bool Propagate, template<bool, bool> typename Propagation>
-        struct on_propagate
-        {
-            using assign = on_assign<true, Propagation>;
-            using unequal_assign = on_assign<true, Propagation>;
-
-            template<typename Fn, typename Other>
-            constexpr void operator()(Fn& fn, Other&& other) const
-                noexcept(nothrow_invocable<assign, Fn&, Other>)
-                requires requires {
-                    requires Propagate;
-                    requires std::invocable<assign, Fn&, Other>;
-                }
-            {
-                assign{}(fn, cpp_forward(other));
-            }
-
-            template<typename Fn, typename Other>
-            constexpr void operator()(Fn& fn, Other&& other) const
-                noexcept(nothrow_invocable<assign, Fn&, Other> && nothrow_invocable<unequal_assign, Fn&, Other>)
-                requires requires {
-                    requires Propagate;
-                    requires !always_equal_v;
-                    requires std::invocable<assign, Fn&, Other>;
-                    requires std::invocable<unequal_assign, Fn&, Other>;
-                }
-            {
-                if(((allocator_adaptor&)fn).get_allocator() != other.get_allocator()) // NOLINT
-                {
-                    unequal_assign{}(fn, cpp_forward(other));
-                    return;
-                }
-
-                assign{}(fn, cpp_forward(other));
-            }
-
-            template<typename Fn>
-                requires requires {
-                    requires !Propagate;
-                    requires std::invocable<Fn&, allocator_no_propagation_t>;
-                }
-            constexpr void operator()(Fn& fn, auto&& /*unused*/)
-                noexcept(nothrow_invocable<Fn&, allocator_no_propagation_t>)
-            {
-                invoke(fn, allocator_no_propagation);
-            }
-        };
-
-    public:
-        template<
-            typename Fn,
-            std::invocable<Fn&, const allocator_adaptor&> OnPropagate =
-                on_propagate<traits::propagate_on_copy_v, copy_propagation>>
-        constexpr Fn& operator=(this Fn& fn, const allocator_adaptor& other)
-            noexcept(nothrow_invocable<OnPropagate, Fn&, const allocator_adaptor&>)
-        {
-            OnPropagate{}(fn, other);
-            return fn;
-        }
-
-        template<
-            typename Fn,
-            std::invocable<Fn&, allocator_adaptor> OnPropagate =
-                on_propagate<traits::propagate_on_move_v, copy_propagation>>
-        constexpr Fn& operator=(this Fn& fn, allocator_adaptor&& other)
-            noexcept(nothrow_invocable<OnPropagate, Fn&, allocator_adaptor>)
-        {
-            OnPropagate{}(fn, other);
-            return fn;
-        }
-
-        constexpr void swap(allocator_adaptor& other) noexcept
-        {
-            if constexpr(traits::propagate_on_swap_v)
-                std::ranges::swap(get_allocator(), other.get_allocator());
-            else if constexpr(!always_equal_v) Expects(get_allocator() == other.get_allocator());
-        }
     };
 }
