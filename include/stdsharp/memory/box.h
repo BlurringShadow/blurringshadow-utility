@@ -16,9 +16,9 @@ namespace stdsharp::details
 
         using allocator_traits = allocation_traits::allocator_traits;
 
-        using allocation_type = allocation_traits::allocation_result;
+        using allocation_type = allocation_traits::allocation;
 
-        using callocation_type = allocation_traits::callocation_result;
+        using callocation_type = allocation_traits::callocation;
 
         using fake_type = fake_type<Req>;
 
@@ -426,7 +426,7 @@ namespace stdsharp::details
             {
                 instance.get().get_allocation() = std::exchange(
                     other.get().get_allocation(),
-                    empty_allocation_result<allocator_type> //
+                    empty_allocation<allocator_type> //
                 );
             }
 

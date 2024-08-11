@@ -13,9 +13,9 @@ namespace stdsharp
 
         using allocation_traits = allocation_traits<Alloc>;
 
-        using allocation = allocation_traits::allocation_result;
+        using allocation = allocation_traits::allocation;
 
-        using callocation = allocation_traits::callocation_result;
+        using callocation = allocation_traits::callocation;
 
         template<bool IsEqual, bool IsBefore>
         using move_propagation = allocator_move_propagation_t<IsEqual, IsBefore>;

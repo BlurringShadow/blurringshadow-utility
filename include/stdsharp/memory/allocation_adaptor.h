@@ -13,8 +13,8 @@ namespace stdsharp::details
         using allocation_traits = allocation_traits<Allocator>;
         using allocator_traits = allocation_traits::allocator_traits;
         using allocator_type = allocation_traits::allocator_type;
-        using allocation = allocation_traits::allocation_result;
-        using callocation = allocation_traits::callocation_result;
+        using allocation = allocation_traits::allocation;
+        using callocation = allocation_traits::callocation;
         using size_type = allocator_traits::size_type;
 
         using ctor = allocator_traits::constructor;

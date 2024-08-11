@@ -16,10 +16,10 @@ namespace stdsharp
         using const_pointer = allocator_traits::const_pointer;
         using void_pointer = allocator_traits::void_pointer;
         using cvp = allocator_traits::const_void_pointer;
-        using allocation_result = allocation_result<allocator_type>;
-        using callocation_result = callocation_result<allocator_type>;
+        using allocation = allocation<allocator_type>;
+        using callocation = callocation<allocator_type>;
 
-        static constexpr auto empty_result = empty_allocation_result<Alloc>;
+        static constexpr auto empty_result = empty_allocation<Alloc>;
 
         static constexpr auto size = std::ranges::size;
 
@@ -37,13 +37,13 @@ namespace stdsharp
         template<typename T = value_type>
         static constexpr auto cget = allocation_cget<Alloc, T>;
 
-        static constexpr allocation_result
+        static constexpr allocation
             allocate(allocator_type& alloc, const size_type size, const cvp hint = nullptr)
         {
             return {allocator_traits::allocate(alloc, size, hint), size};
         }
 
-        static constexpr allocation_result try_allocate(
+        static constexpr allocation try_allocate(
             allocator_type& alloc,
             const size_type size,
             const cvp hint = nullptr
@@ -68,7 +68,7 @@ namespace stdsharp
                 requires std::invocable<Ctor, allocator_type&, T*, Args...>
             constexpr void operator()(
                 allocator_type& alloc,
-                const allocation<Alloc> auto& allocation,
+                const allocation& allocation,
                 Args&&... args
             ) const noexcept(nothrow_invocable<Ctor, allocator_type&, T*, Args...>)
             {
