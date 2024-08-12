@@ -13,37 +13,15 @@ namespace stdsharp
         volatile_<std::remove_reference_t<From>>,
         ref_qualifier_v<From&&>>;
 
-    template<typename From, typename To, typename... Rest>
-    struct forward_cast_fn
-    {
-    private:
-        using current_fn = forward_cast_fn<From, To>;
-        using current_cast_t = typename current_fn::cast_t;
-        using next_fn = forward_cast_fn<current_cast_t, Rest...>;
-
-    public:
-        using from_t = std::remove_reference_t<From>;
-
-        [[nodiscard]] constexpr decltype(auto) operator()(from_t&& from) const noexcept
-            requires std::invocable<current_fn, from_t> && std::invocable<next_fn, current_cast_t>
-        {
-            return next_fn{}(current_fn{}(cpp_move(from)));
-        }
-
-        [[nodiscard]] constexpr decltype(auto) operator()(from_t& from) const noexcept
-            requires std::invocable<current_fn, from_t&> && std::invocable<next_fn, current_cast_t>
-        {
-            return next_fn{}(current_fn{}(from));
-        }
-    };
+    template<typename, typename>
+    struct forward_cast_fn;
 
     template<typename From, not_decay_derived<From> To>
-        requires not_decay_derived<From, To> &&
-        not_same_as<std::remove_cvref_t<From>, std::remove_cvref_t<To>>
+        requires not_decay_derived<From, To> && (!decay_same_as<From, To>)
     struct forward_cast_fn<From, To>;
 
     template<typename From, typename To>
-    struct forward_cast_fn<From, To>
+    struct forward_cast_fn
     {
         using from_t = std::remove_reference_t<From>;
         using cast_t = forward_cast_t<From, To>;
@@ -65,8 +43,15 @@ namespace stdsharp
         }
     };
 
-    template<typename From, typename To, typename... Rest>
-    inline constexpr forward_cast_fn<From, To, Rest...> forward_cast{};
+    template<typename From, typename To>
+    inline constexpr forward_cast_fn<From, To> forward_cast{};
+
+    template<typename To>
+    struct self_cast
+    {
+        template<typename From>
+        using fn = forward_cast_fn<From, To>;
+    };
 }
 
 #include "../compilation_config_out.h"

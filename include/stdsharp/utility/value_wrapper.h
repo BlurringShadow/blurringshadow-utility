@@ -29,7 +29,6 @@ namespace stdsharp::details
 
     template<empty_type T>
     class value_wrapper<T> : T
-
     {
     public:
         value_wrapper() = default;
@@ -46,7 +45,7 @@ namespace stdsharp::details
         template<typename Self>
         [[nodiscard]] constexpr decltype(auto) get(this Self&& self) noexcept
         {
-            return forward_cast<Self, value_wrapper, T>(self);
+            return forward_cast<Self, value_wrapper>(self);
         }
     };
 }
@@ -56,6 +55,10 @@ namespace stdsharp
     template<typename T = void>
     struct value_wrapper : details::value_wrapper<T>
     {
+    private:
+        using self_cast = stdsharp::self_cast<value_wrapper>;
+
+    public:
         using value_type = T;
 
         value_wrapper() = default;
@@ -72,7 +75,7 @@ namespace stdsharp
         template<typename Self, typename SelfT = const Self>
         [[nodiscard]] constexpr decltype(auto) cget(this const Self&& self) noexcept
         {
-            return forward_cast<SelfT, value_wrapper>(self).get();
+            return self_cast::fn<Self>(cpp_forward(self)).get();
         }
 
         template<typename Self, typename SelfT = const Self&>

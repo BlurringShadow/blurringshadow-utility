@@ -104,7 +104,7 @@ namespace stdsharp
         struct on_propagate
         {
             using assign = on_assign<true, Propagation>;
-            using unequal_assign = on_assign<true, Propagation>;
+            using unequal_assign = on_assign<false, Propagation>;
 
             template<typename Fn, typename Other>
             constexpr void operator()(Fn& fn, Other&& other) const

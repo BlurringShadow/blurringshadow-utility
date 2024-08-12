@@ -57,23 +57,32 @@ namespace stdsharp::details
 
         using index_sequence = std::index_sequence<I...>;
 
+    private:
+        template<typename Self, auto J>
+        static constexpr decltype(auto) forward_cast_to(Self&& self)
+        {
+            return forward_cast<indexed_values, indexed_value<J, type<J>>>(
+                forward_cast<Self, indexed_values>(self)
+            );
+        }
+
+    public:
         template<std::size_t J, typename Self>
         constexpr decltype(auto) get(this Self&& self) noexcept
         {
-            return forward_cast<Self, indexed_values, indexed_value<J, type<J>>>(self).get();
+            return forward_cast_to<Self, J>(self).get();
         }
 
         template<std::size_t J, typename Self>
         constexpr decltype(auto) cget(this const Self&& self) noexcept
         {
-            return forward_cast<const Self, indexed_values, indexed_value<J, type<J>>>(self).cget();
+            return forward_cast_to<const Self, J>(self).get();
         }
 
         template<std::size_t J, typename Self>
         constexpr decltype(auto) cget(this const Self& self) noexcept
         {
-            return forward_cast<const Self&, indexed_values, indexed_value<J, type<J>>>(self).cget(
-            );
+            return forward_cast_to<const Self&, J>(self).get();
         }
     };
 }
