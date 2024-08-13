@@ -204,9 +204,17 @@ namespace stdsharp
             return allocation_traits::allocate(get_allocator(), size);
         }
 
-        constexpr auto deallocate(const allocation& allocation)
+        constexpr auto deallocate(const allocation& allocation) noexcept
         {
-            return allocation_traits::deallocate(get_allocator(), {allocation});
+            return allocation_traits::deallocate(get_allocator(), allocation);
+        }
+
+        constexpr auto deallocate(auto&& allocations)
+            requires requires {
+                allocation_traits::deallocate(get_allocator(), cpp_forward(allocations));
+            }
+        {
+            return allocation_traits::deallocate(get_allocator(), cpp_forward(allocations));
         }
     };
 }

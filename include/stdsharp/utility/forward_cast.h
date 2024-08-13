@@ -45,13 +45,6 @@ namespace stdsharp
 
     template<typename From, typename To>
     inline constexpr forward_cast_fn<From, To> forward_cast{};
-
-    template<typename To>
-    struct self_cast
-    {
-        template<typename From>
-        using fn = forward_cast_fn<From, To>;
-    };
 }
 
 #include "../compilation_config_out.h"

@@ -56,7 +56,8 @@ namespace stdsharp
     struct value_wrapper : details::value_wrapper<T>
     {
     private:
-        using self_cast = stdsharp::self_cast<value_wrapper>;
+        template<typename From>
+        static constexpr auto self_cast = forward_cast<From, value_wrapper>;
 
     public:
         using value_type = T;
@@ -75,13 +76,13 @@ namespace stdsharp
         template<typename Self, typename SelfT = const Self>
         [[nodiscard]] constexpr decltype(auto) cget(this const Self&& self) noexcept
         {
-            return self_cast::fn<Self>(cpp_forward(self)).get();
+            return self_cast<Self>(self).get();
         }
 
         template<typename Self, typename SelfT = const Self&>
         [[nodiscard]] constexpr decltype(auto) cget(this const Self& self) noexcept
         {
-            return forward_cast<SelfT, value_wrapper>(self).get();
+            return self_cast<Self>(self).get();
         }
     };
 

@@ -59,7 +59,7 @@ namespace stdsharp::details
 
     private:
         template<typename Self, auto J>
-        static constexpr decltype(auto) forward_cast_to(Self&& self)
+        static constexpr decltype(auto) self_cast_at(Self&& self)
         {
             return forward_cast<indexed_values, indexed_value<J, type<J>>>(
                 forward_cast<Self, indexed_values>(self)
@@ -70,19 +70,19 @@ namespace stdsharp::details
         template<std::size_t J, typename Self>
         constexpr decltype(auto) get(this Self&& self) noexcept
         {
-            return forward_cast_to<Self, J>(self).get();
+            return self_cast_at<Self, J>(self).get();
         }
 
         template<std::size_t J, typename Self>
         constexpr decltype(auto) cget(this const Self&& self) noexcept
         {
-            return forward_cast_to<const Self, J>(self).get();
+            return self_cast_at<const Self, J>(self).get();
         }
 
         template<std::size_t J, typename Self>
         constexpr decltype(auto) cget(this const Self& self) noexcept
         {
-            return forward_cast_to<const Self&, J>(self).get();
+            return self_cast_at<const Self&, J>(self).get();
         }
     };
 }

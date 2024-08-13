@@ -52,13 +52,16 @@ namespace stdsharp
             return {allocator_traits::try_allocate(alloc, size, hint), size};
         }
 
-        static constexpr void deallocate(allocator_type& alloc, allocations<Alloc> auto&& dst) noexcept
+        static constexpr void deallocate(allocator_type& alloc, allocation& dst_allocation) noexcept
         {
-            for(auto& dst_allocation : cpp_forward(dst))
-            {
-                allocator_traits::deallocate(alloc, data<>(dst_allocation), size(dst_allocation));
-                dst_allocation = empty_result;
-            }
+            allocator_traits::deallocate(alloc, data<>(dst_allocation), size(dst_allocation));
+            dst_allocation = empty_result;
+        }
+
+        static constexpr void
+            deallocate(allocator_type& alloc, allocations<Alloc> auto&& dst)
+        {
+            for(auto& dst_allocation : cpp_forward(dst)) deallocate(alloc, dst_allocation);
         }
 
         template<typename T = Alloc::value_type>
