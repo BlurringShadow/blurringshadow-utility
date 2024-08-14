@@ -28,8 +28,10 @@ SCENARIO("indexed traits", "[type traits][indexed traits]")
         THEN("indexed value getter type")
         {
             STATIC_REQUIRE(same_as<decltype(values.get<0>()), int&>);
+            STATIC_REQUIRE(same_as<decltype(values.cget<0>()), const int&>);
             STATIC_REQUIRE(same_as<decltype(as_const(values).get<0>()), const int&>);
             STATIC_REQUIRE(same_as<decltype(cpp_move(values).get<0>()), int&&>);
+            STATIC_REQUIRE(same_as<decltype(cpp_move(values).cget<0>()), const int&&>);
             STATIC_REQUIRE(same_as<decltype(cpp_move(as_const(values)).get<0>()), const int&&>);
 
             STATIC_REQUIRE(same_as<decltype(cpo::get_element<0>(values)), int&>);

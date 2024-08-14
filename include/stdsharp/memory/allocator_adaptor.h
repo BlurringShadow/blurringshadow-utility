@@ -107,25 +107,25 @@ namespace stdsharp
             using unequal_assign = on_assign<false, Propagation>;
 
             template<typename Fn, typename Other>
-            constexpr void operator()(Fn& fn, Other&& other) const
-                noexcept(nothrow_invocable<assign, Fn&, Other>)
                 requires requires {
                     requires Propagate;
                     requires std::invocable<assign, Fn&, Other>;
                 }
+            constexpr void operator()(Fn& fn, Other&& other) const
+                noexcept(nothrow_invocable<assign, Fn&, Other>)
             {
                 assign{}(fn, cpp_forward(other));
             }
 
             template<typename Fn, typename Other>
-            constexpr void operator()(Fn& fn, Other&& other) const
-                noexcept(nothrow_invocable<assign, Fn&, Other> && nothrow_invocable<unequal_assign, Fn&, Other>)
                 requires requires {
                     requires Propagate;
                     requires !always_equal_v;
                     requires std::invocable<assign, Fn&, Other>;
                     requires std::invocable<unequal_assign, Fn&, Other>;
                 }
+            constexpr void operator()(Fn& fn, Other&& other) const
+                noexcept(nothrow_invocable<assign, Fn&, Other> && nothrow_invocable<unequal_assign, Fn&, Other>)
             {
                 if(((allocator_adaptor&)fn).get_allocator() != other.get_allocator()) // NOLINT
                 {

@@ -13,13 +13,6 @@ namespace stdsharp
         volatile_<std::remove_reference_t<From>>,
         ref_qualifier_v<From&&>>;
 
-    template<typename, typename>
-    struct forward_cast_fn;
-
-    template<typename From, not_decay_derived<From> To>
-        requires not_decay_derived<From, To> && (!decay_same_as<From, To>)
-    struct forward_cast_fn<From, To>;
-
     template<typename From, typename To>
     struct forward_cast_fn
     {
@@ -42,6 +35,10 @@ namespace stdsharp
             else return static_cast<cast_t>(from);
         }
     };
+
+    template<typename From, not_decay_derived<From> To>
+        requires not_decay_derived<From, To> && (!decay_same_as<From, To>)
+    struct forward_cast_fn<From, To>;
 
     template<typename From, typename To>
     inline constexpr forward_cast_fn<From, To> forward_cast{};

@@ -22,6 +22,8 @@ namespace stdsharp
         }
 
     public:
+        using indexed_values<Func...>::indexed_values;
+
         template<
             typename Self,
             typename... Args,
