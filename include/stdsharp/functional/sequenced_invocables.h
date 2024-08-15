@@ -11,7 +11,7 @@ namespace stdsharp
         template<typename Self, std::size_t J, typename... Args>
         static consteval auto first_invocable() noexcept
         {
-            if constexpr(J >= size()) return J;
+            if constexpr(J >= sequenced_invocables::size()) return J;
             else
             {
                 using fn = forward_cast_t<Self, typename sequenced_invocables::template type<J>>;
