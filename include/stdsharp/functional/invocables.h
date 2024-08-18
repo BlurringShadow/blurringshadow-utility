@@ -1,44 +1,64 @@
 #pragma once
 
-#include "../functional/invoke.h"
 #include "../type_traits/indexed_traits.h"
+#include "invoke.h"
 
 #include "../compilation_config_in.h"
 
-namespace stdsharp
+namespace stdsharp::details
 {
-    template<typename Func>
-    struct invocable_t
+    template<typename... Func>
+    struct invocables_traits
     {
-        Func fn;
+        using indexed = stdsharp::indexed_values<Func...>;
 
-        template<
-            typename Self,
-            typename... Args,
-            std::invocable<Args...> Fn = forward_cast_t<Self, Func>>
-        constexpr decltype(auto) operator()(this Self&& self, Args&&... args)
-            noexcept(nothrow_invocable<Fn, Args...>)
+        template<std::size_t I>
+        struct invocable_t
         {
-            return invoke(forward_cast<Self, invocable_t>(self).fn, cpp_forward(args)...);
-        }
+        private:
+            using func_t = typename indexed::template type<I>;
+
+        public:
+            template<
+                typename Self,
+                typename... Args,
+                std::invocable<Args...> Fn = forward_cast_t<Self, func_t>>
+            constexpr decltype(auto) operator()(this Self&& self, Args&&... args)
+                noexcept(nothrow_invocable<Fn, Args...>)
+            {
+                return invoke(
+                    forward_cast<Self, indexed>(self).template get<I>(),
+                    cpp_forward(args)...
+                );
+            }
+        };
+
+        template<typename = std::index_sequence_for<Func...>>
+        struct impl;
+
+        template<std::size_t... I>
+        struct impl<std::index_sequence<I...>> : indexed, invocable_t<I>...
+        {
+            using indexed::indexed;
+            using invocable_t<I>::operator()...;
+        };
     };
 }
 
 namespace stdsharp
 {
     template<typename... Func>
-    struct invocables : indexed_values<invocable_t<Func>...>
+    struct invocables : details::invocables_traits<Func...>::template impl<>
     {
     private:
-        using m_base = indexed_values<invocable_t<Func>...>;
+        using m_base = details::invocables_traits<Func...>::template impl<>;
 
     public:
         using m_base::m_base;
-        using invocable_t<Func>::operator()...;
     };
 
-    template<typename... T>
-    invocables(T&&...) -> invocables<std::decay_t<T>...>;
+    template<typename... Func>
+    invocables(Func&&...) -> invocables<std::decay_t<Func>...>;
 }
 
 namespace std

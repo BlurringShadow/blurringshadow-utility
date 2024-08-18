@@ -1,13 +1,15 @@
 #pragma once
 
-#include "../functional/invoke.h"
-#include "../type_traits/indexed_traits.h"
+#include "invocables.h"
 
 namespace stdsharp
 {
     template<typename... Func>
-    class sequenced_invocables : public indexed_values<Func...>
+    struct sequenced_invocables : invocables<Func...>
     {
+    private:
+        using m_base = invocables<Func...>;
+
         template<typename Self, std::size_t J, typename... Args>
         static consteval auto first_invocable() noexcept
         {
@@ -22,7 +24,7 @@ namespace stdsharp
         }
 
     public:
-        using indexed_values<Func...>::indexed_values;
+        using m_base::m_base;
 
         template<
             typename Self,
