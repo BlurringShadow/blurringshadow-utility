@@ -31,6 +31,8 @@ SCENARIO("invocables", "[function][invocables]")
 
     REQUIRE(fn.get<0>()(1) == 0);
     REQUIRE(fn.cget<0>()(1) == 0);
+    REQUIRE(fn.invoke_at<0>(1) == 0);
+    STATIC_REQUIRE(cpp_is_constexpr(stdsharp::invocables{[]{}}.invoke_at<0>()));
     STATIC_REQUIRE(constructible_from<invocables, f0, f1, f2, f3>);
     STATIC_REQUIRE(constructible_from<invocables, f0, f1, f2>);
     STATIC_REQUIRE(constructible_from<invocables, f0, f1>);

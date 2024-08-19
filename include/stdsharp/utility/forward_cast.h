@@ -16,23 +16,10 @@ namespace stdsharp
     template<typename From, typename To>
     struct forward_cast_fn
     {
-        using from_t = std::remove_reference_t<From>;
-        using cast_t = forward_cast_t<From, To>;
-
-        STDSHARP_INTRINSIC constexpr decltype(auto) operator()(from_t& from) //
-            const noexcept
+        STDSHARP_INTRINSIC constexpr decltype(auto) operator()(From&& from)
+            const noexcept // c-style cast allows cast to inaccessible base
         {
-            // c-style cast allow us cast to inaccessible base
-            if constexpr(decay_derived<From, To>) return (cast_t)from; // NOLINT
-            else return static_cast<cast_t>(from);
-        }
-
-        STDSHARP_INTRINSIC constexpr decltype(auto) operator()(from_t&& from) //
-            const noexcept
-        {
-            // c-style cast allow us cast to inaccessible base
-            if constexpr(decay_derived<From, To>) return (cast_t)from; // NOLINT
-            else return static_cast<cast_t>(from);
+            return (forward_cast_t<From, To>)from; // NOLINT
         }
     };
 

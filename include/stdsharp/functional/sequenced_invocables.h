@@ -13,10 +13,10 @@ namespace stdsharp
         template<typename Self, std::size_t J, typename... Args>
         static consteval auto first_invocable() noexcept
         {
-            if constexpr(J >= sequenced_invocables::size()) return J;
+            if constexpr(J >= m_base::size()) return J;
             else
             {
-                using fn = forward_cast_t<Self, typename sequenced_invocables::template type<J>>;
+                using fn = forward_cast_t<Self, typename m_base::template type<J>>;
 
                 if constexpr(std::invocable<fn, Args...>) return J;
                 else return first_invocable<Self, J + 1, Args...>();
@@ -26,19 +26,20 @@ namespace stdsharp
     public:
         using m_base::m_base;
 
-        template<
-            typename Self,
-            typename... Args,
-            auto J = first_invocable<Self, 0, Args...>(),
-            std::invocable<Args...> Fn =
-                forward_cast_t<Self, typename sequenced_invocables::template type<J>>>
-        constexpr decltype(auto) operator()(this Self&& self, Args&&... args)
-            noexcept(nothrow_invocable<Fn, Args...>)
+        template<typename Self, typename... Args, auto J = first_invocable<Self, 0, Args...>()>
+        constexpr decltype(auto) operator()(this Self&& self, Args&&... args) noexcept( //
+            noexcept( //
+                forward_cast<Self, sequenced_invocables>(self). //
+                template invoke_at<J>(cpp_forward(args)...)
+            ) //
+        )
+            requires requires {
+                forward_cast<Self, sequenced_invocables>(self). //
+                    template invoke_at<J>(cpp_forward(args)...);
+            }
         {
-            return invoke(
-                forward_cast<Self, sequenced_invocables>(self).template get<J>(),
-                cpp_forward(args)...
-            );
+            return forward_cast<Self, sequenced_invocables>(self). //
+                template invoke_at<J>(cpp_forward(args)...);
         }
     };
 
