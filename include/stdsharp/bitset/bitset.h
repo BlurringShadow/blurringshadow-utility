@@ -11,46 +11,41 @@
 
 namespace stdsharp::details
 {
-    template<std::size_t N, bool IsConst>
-    class bitset_iterator
+    template<typename Bitset>
+    class bitset_iterator : public basic_iterator<decltype(Bitset{}[0]), ssize_t>
     {
     public:
-        using bitset = std::bitset<N>;
+        using bitset = Bitset;
 
     protected:
-        using maybe_const = std::conditional_t<IsConst, const bitset, bitset>;
-
-        maybe_const* set_{};
+        bitset* set_{};
         std::size_t i_{};
 
     public:
         bitset_iterator() = default;
 
-        constexpr bitset_iterator(maybe_const& set, const std::size_t index): set_(&set), i_(index)
+        constexpr bitset_iterator(bitset& set, const std::size_t index): set_(&set), i_(index)
         {
         }
 
         [[nodiscard]] constexpr decltype(auto) operator*() const { return (*set_)[i_]; }
 
-        template<typename T>
-        constexpr auto& operator++(this T& self) noexcept
+        constexpr auto& operator++() noexcept
         {
-            ++(forward_cast<T&, bitset_iterator>(self).i_);
-            return self;
+            ++i_;
+            return *this;
         }
 
-        template<typename T>
-        constexpr auto& operator--(this T& self) noexcept
+        constexpr auto& operator--() noexcept
         {
-            --(forward_cast<T&, bitset_iterator>(self).i_);
-            return self;
+            --i_;
+            return *this;
         }
 
-        template<typename T>
-        constexpr auto& operator+=(this T& self, const ssize_t n) noexcept
+        constexpr auto& operator+=(const ssize_t n) noexcept
         {
-            forward_cast<T&, bitset_iterator>(self).i_ += n;
-            return self;
+            i_ += n;
+            return *this;
         }
 
         [[nodiscard]] constexpr auto operator-(const bitset_iterator& other) const noexcept
@@ -61,39 +56,46 @@ namespace stdsharp::details
 
         [[nodiscard]] constexpr decltype(auto) operator[](const ssize_t index) const
         {
-            return (*this->set_)[this->i_ + index];
+            return set_[i_ + index];
         }
 
         [[nodiscard]] constexpr bool operator==(const bitset_iterator& other) const noexcept
         {
-            assert_equal(this->set_, other.set_);
-            return this->i_ == other.i_;
+            assert_equal(set_, other.set_);
+            return i_ == other.i_;
         }
 
         [[nodiscard]] constexpr auto operator<=>(const bitset_iterator& other) const noexcept
         {
-            assert_equal(this->set_, other.set_);
-            return this->i_ <=> other.i_;
+            assert_equal(set_, other.set_);
+            return i_ <=> other.i_;
         }
     };
-
 }
 
 namespace stdsharp
 {
     template<std::size_t N>
-    struct bitset_iterator : basic_iterator<details::bitset_iterator<N, false>>
+    struct bitset_iterator : details::bitset_iterator<std::bitset<N>>
     {
-        using basic_iterator<details::bitset_iterator<N, false>>::basic_iterator;
+    private:
+        using m_base = details::bitset_iterator<std::bitset<N>>;
+
+    public:
+        using m_base::m_base;
     };
 
     template<std::size_t N>
     bitset_iterator(std::bitset<N>&, auto) -> bitset_iterator<N>;
 
     template<std::size_t N>
-    struct bitset_const_iterator : basic_iterator<details::bitset_iterator<N, true>>
+    struct bitset_const_iterator : details::bitset_iterator<const std::bitset<N>>
     {
-        using basic_iterator<details::bitset_iterator<N, true>>::basic_iterator;
+    private:
+        using m_base = details::bitset_iterator<const std::bitset<N>>;
+
+    public:
+        using m_base::m_base;
     };
 
     template<std::size_t N>

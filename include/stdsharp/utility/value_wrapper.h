@@ -20,11 +20,21 @@ namespace stdsharp::details
         {
         }
 
-        template<typename Self>
-        [[nodiscard]] constexpr decltype(auto) get(this Self&& self) noexcept
+        [[nodiscard]] constexpr decltype(auto) get(this auto&& self) noexcept
         {
-            return (forward_cast<Self, value_wrapper>(self).v);
+            return (fwd_cast<value_wrapper>(cpp_forward(self)).v);
         }
+    };
+
+    template<typename T>
+    class value_wrapper<T&> : std::reference_wrapper<T>
+    {
+        using m_base = std::reference_wrapper<T>;
+
+    public:
+        using m_base::m_base;
+
+        using m_base::get;
     };
 
     template<empty_type T>
@@ -42,13 +52,18 @@ namespace stdsharp::details
         {
         }
 
-        template<typename Self>
-        [[nodiscard]] constexpr decltype(auto) get(this Self&& self) noexcept
+        [[nodiscard]] constexpr decltype(auto) get(this auto&& self) noexcept
         {
-            auto&& wrapper = forward_cast<Self, value_wrapper>(self);
-
-            return forward_cast<decltype(wrapper), T>(wrapper);
+            return fwd_cast<T>(fwd_cast<value_wrapper>(self));
         }
+    };
+
+    template<void_ T>
+    struct value_wrapper<T>
+    {
+        constexpr void get() const noexcept {}
+
+        constexpr void cget() const noexcept {}
     };
 }
 
@@ -58,8 +73,7 @@ namespace stdsharp
     struct value_wrapper : details::value_wrapper<T>
     {
     private:
-        template<typename From>
-        static constexpr auto self_cast = forward_cast<From, value_wrapper>;
+        static constexpr auto self_cast = fwd_cast<value_wrapper>;
 
     public:
         using value_type = T;
@@ -75,25 +89,15 @@ namespace stdsharp
         {
         }
 
-        template<typename Self>
-        [[nodiscard]] constexpr decltype(auto) cget(this const Self&& self) noexcept
+        [[nodiscard]] constexpr decltype(auto) cget(this const auto&& self) noexcept
         {
-            return self_cast<const Self>(self).get();
+            return self_cast(cpp_forward(self)).get();
         }
 
-        template<typename Self>
-        [[nodiscard]] constexpr decltype(auto) cget(this const Self& self) noexcept
+        [[nodiscard]] constexpr decltype(auto) cget(this const auto& self) noexcept
         {
-            return self_cast<const Self&>(self).get();
+            return self_cast(self).get();
         }
-    };
-
-    template<void_ T>
-    struct value_wrapper<T>
-    {
-        constexpr void get() const noexcept {}
-
-        constexpr void cget() const noexcept {}
     };
 
     template<typename T>

@@ -5,6 +5,7 @@ STDSHARP_TEST_NAMESPACES;
 
 struct t0
 {
+    bool operator==(const t0&) const = default;
 };
 
 struct t1 : t0
@@ -19,11 +20,11 @@ class t2 : t1
 
 SCENARIO("forward cast", "[utility][forward cast]")
 {
-    STATIC_REQUIRE(same_as<forward_cast_t<int, int>, int&&>);
-    STATIC_REQUIRE(same_as<forward_cast_t<int&, int>, int&>);
-    STATIC_REQUIRE(same_as<forward_cast_t<const int&, int>, const int&>);
-    STATIC_REQUIRE(same_as<forward_cast_t<const int&, int&>, const int&>);
-    STATIC_REQUIRE(same_as<forward_cast_t<const volatile int&, int&&>, const volatile int&>);
+    STATIC_REQUIRE(same_as<forward_like_t<int, int>, int&&>);
+    STATIC_REQUIRE(same_as<forward_like_t<int&, int>, int&>);
+    STATIC_REQUIRE(same_as<forward_like_t<const int&, int>, const int&>);
+    STATIC_REQUIRE(same_as<forward_like_t<const int&, int&>, const int&>);
+    STATIC_REQUIRE(same_as<forward_like_t<const volatile int&, int&&>, const volatile int&>);
 
     GIVEN("t0")
     {
@@ -36,6 +37,12 @@ SCENARIO("forward cast", "[utility][forward cast]")
         STATIC_REQUIRE(same_as<decltype(forward_cast<const t0&&, t0>(std::move(as_const(v)))), const t0&&>);
         STATIC_REQUIRE(same_as<decltype(forward_cast<const t0&&, t0&>(std::move(as_const(v)))), const t0&&>);
         STATIC_REQUIRE(same_as<decltype(forward_cast<const t0&&, t0&&>(std::move(as_const(v)))), const t0&&>);
+
+        {
+            constexpr t0 v1{};
+
+            STATIC_REQUIRE(forward_cast<const t0&, t0>(v1) == v1);
+        }
     }
 
     GIVEN("t1")

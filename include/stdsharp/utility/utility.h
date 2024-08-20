@@ -8,27 +8,12 @@
 #include "to_lvalue.h" // IWYU pragma: export
 #include "value_wrapper.h" // IWYU pragma: export
 
-#include <utility>
+#include <utility> // IWYU pragma: export
 
 #include "../compilation_config_in.h"
 
 namespace stdsharp
 {
-    template<typename T>
-    struct forward_like_fn
-    {
-        [[nodiscard]] constexpr decltype(auto) operator()(auto&& u) const noexcept
-        {
-            return std::forward_like<T>(u);
-        }
-    };
-
-    template<typename T>
-    inline constexpr forward_like_fn<T> forward_like{};
-
-    template<typename T, typename U>
-    using forward_like_t = decltype(forward_like<T>(std::declval<U>()));
-
     inline constexpr struct as_lvalue_fn
     {
         STDSHARP_INTRINSIC constexpr auto& operator()(auto&& t) const noexcept { return t; }

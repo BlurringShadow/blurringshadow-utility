@@ -2,7 +2,6 @@
 
 #include "../cassert/cassert.h"
 #include "../iterator/basic_iterator.h"
-#include "../utility/forward_cast.h"
 
 #include <new>
 
@@ -12,6 +11,16 @@ namespace stdsharp::details
 {
     template<typename T>
     class launder_iterator
+    {
+    };
+
+}
+
+namespace stdsharp
+{
+    template<typename T>
+    struct STDSHARP_EBO launder_iterator :
+        basic_iterator<T, std::ptrdiff_t, std::contiguous_iterator_tag>
     {
         T* ptr_;
 
@@ -30,25 +39,22 @@ namespace stdsharp::details
             return *data();
         }
 
-        template<typename Self>
-        constexpr Self& operator++(this Self& self) noexcept
+        constexpr auto& operator++() noexcept
         {
-            ++(forward_cast<Self&, launder_iterator>(self).ptr_);
-            return self;
+            ++ptr_;
+            return *this;
         }
 
-        template<typename Self>
-        constexpr Self& operator--(this Self& self) noexcept
+        constexpr auto& operator--() noexcept
         {
-            --(forward_cast<Self&, launder_iterator>(self).ptr_);
-            return self;
+            --ptr_;
+            return *this;
         }
 
-        template<typename Self>
-        constexpr Self& operator+=(this Self& self, const std::ptrdiff_t diff) noexcept
+        constexpr auto& operator+=(const std::ptrdiff_t diff) noexcept
         {
-            forward_cast<Self&, launder_iterator>(self).ptr_ += diff;
-            return self;
+            ptr_ += diff;
+            return *this;
         }
 
         [[nodiscard]] constexpr auto operator-(const launder_iterator iter) const noexcept
@@ -62,29 +68,15 @@ namespace stdsharp::details
             return *std::launder(data() + diff);
         }
 
-        [[nodiscard]] constexpr auto operator<=>( //
-            const launder_iterator& other
-        ) const noexcept
+        [[nodiscard]] constexpr auto operator<=>(const launder_iterator& other) const noexcept
         {
             return data() <=> other.data();
         }
 
-        [[nodiscard]] constexpr bool operator==( //
-            const launder_iterator& other
-        ) const noexcept
+        [[nodiscard]] constexpr bool operator==(const launder_iterator& other) const noexcept
         {
             return data() == other.data();
         }
-    };
-
-}
-
-namespace stdsharp
-{
-    template<typename T>
-    struct STDSHARP_EBO launder_iterator :
-        basic_iterator<details::launder_iterator<T>, std::contiguous_iterator_tag>
-    {
     };
 
     template<typename T>

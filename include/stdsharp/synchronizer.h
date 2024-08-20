@@ -12,6 +12,8 @@ namespace stdsharp
         requires basic_lockable<Lockable>
     class synchronizer
     {
+        static constexpr auto self_cast = self_cast;
+
     public:
         using lock_type = Lockable;
         using shared_lock = std::shared_lock<lock_type>;
@@ -42,34 +44,29 @@ namespace stdsharp
             requires std::constructible_from<Lock, lock_type&, Args...>
         constexpr auto write_impl(this Self&& self, T&& value, Args&&... args)
         {
-            using cast_t = forward_cast_t<Self, T>;
+            using fwd_t = forward_like_t<Self, T>;
 
             struct local
             {
-                cast_t value;
+                fwd_t value;
                 Lock lock;
             };
 
             return local{
-                .value = static_cast<cast_t>(value),
-                .lock =
-                    Lock{forward_cast<Self&, synchronizer>(self).lockable_, cpp_forward(args)...}
+                .value = static_cast<fwd_t>(value),
+                .lock = Lock{self_cast(self).lockable_, cpp_forward(args)...}
             };
         }
 
     public:
-#define STDSHARP_SYNCHRONIZER_READ_WITH(ref)                                             \
-    template<typename Self, typename SelfT = const Self ref>                             \
-    [[nodiscard]] constexpr auto read_with(this const Self ref self, auto&&... args)     \
-        requires requires {                                                              \
-            forward_cast<SelfT, synchronizer>(self).template write_impl<shared_lock>(    \
-                cpp_forward(args)...                                                     \
-            );                                                                           \
-        }                                                                                \
-    {                                                                                    \
-        return forward_cast<SelfT, synchronizer>(self).template write_impl<shared_lock>( \
-            cpp_forward(args)...                                                         \
-        );                                                                               \
+#define STDSHARP_SYNCHRONIZER_READ_WITH(ref)                                                     \
+    [[nodiscard]] constexpr auto read_with(this const auto ref self, auto&&... args)             \
+        requires requires {                                                                      \
+            self_cast(cpp_forward(self)).template write_impl<shared_lock>(cpp_forward(args)...); \
+        }                                                                                        \
+    {                                                                                            \
+        return self_cast(cpp_forward(self))                                                      \
+            .template write_impl<shared_lock>(cpp_forward(args)...);                             \
     }
 
         STDSHARP_SYNCHRONIZER_READ_WITH(&)
@@ -77,17 +74,13 @@ namespace stdsharp
 
 #undef STDSHARP_SYNCHRONIZER_READ_WITH
 
-        template<typename Self, typename SelfT = const Self&>
-        [[nodiscard]] constexpr auto write_with(this Self&& self, auto&&... args)
+        [[nodiscard]] constexpr auto write_with(this auto&& self, auto&&... args)
             requires requires {
-                forward_cast<Self, synchronizer>(self).template write_impl<unique_lock>(
-                    cpp_forward(args)...
-                );
+                self_cast(cpp_forward(self)).template write_impl<unique_lock>(cpp_forward(args)...);
             }
         {
-            return forward_cast<SelfT, synchronizer>(self).template write_impl<unique_lock>(
-                cpp_forward(args)...
-            );
+            return self_cast(cpp_forward(self))
+                .template write_impl<unique_lock>(cpp_forward(args)...);
         }
 
         constexpr const lock_type& lockable() const noexcept { return lockable_; }

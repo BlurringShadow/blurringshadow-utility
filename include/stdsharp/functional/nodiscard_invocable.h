@@ -11,12 +11,12 @@ namespace stdsharp
         template<
             typename Self,
             typename... Args,
-            std ::invocable<Args...> Fn = forward_cast_t<Self, Func>>
+            std ::invocable<Args...> Fn = forward_like_t<Self, Func>>
         [[nodiscard]] constexpr decltype(auto) operator()(this Self&& self, Args&&... args)
             noexcept(nothrow_invocable<Fn, Args...>)
         {
             return invoke(
-                forward_cast<Self, nodiscard_invocable>(self).get(),
+                fwd_cast<nodiscard_invocable>(cpp_forward(self)).get(),
                 cpp_forward(args)...
             );
         }

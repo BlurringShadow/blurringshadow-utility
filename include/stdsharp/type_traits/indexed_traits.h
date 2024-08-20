@@ -61,9 +61,9 @@ namespace stdsharp::details
         template<typename Self, auto J>
         static constexpr decltype(auto) self_cast_at(auto&& self)
         {
-            auto&& indexed = forward_cast<Self, indexed_values>(self);
-
-            return forward_cast<decltype(indexed), indexed_value<J, type<J>>>(indexed);
+            return fwd_cast<indexed_value<J, type<J>>>(
+                fwd_cast<indexed_values>(cpp_forward(self))
+            );
         }
 
     public:

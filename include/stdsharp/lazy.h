@@ -77,6 +77,8 @@ namespace stdsharp
             has_value_ = !has_value_;
         }
 
+        static constexpr auto self_cast = fwd_cast<lazy>;
+
     public:
         constexpr lazy(const lazy& other)
             noexcept(nothrow_copy_constructible<Fn> && nothrow_copy_constructible<value_type>)
@@ -159,26 +161,23 @@ namespace stdsharp
 
         [[nodiscard]] constexpr bool has_value() const noexcept { return has_value_; }
 
-        template<typename Self>
-        constexpr decltype(auto) get(this Self&& self)
-            noexcept(noexcept(generate_value(forward_cast<Self, lazy>(self))))
-            requires requires { generate_value(forward_cast<Self, lazy>(self)); }
+        constexpr decltype(auto) get(this auto&& self)
+            noexcept(noexcept(generate_value(self_cast(cpp_forward(self)))))
+            requires requires { generate_value(self_cast(cpp_forward(self))); }
         {
-            auto&& this_ = forward_cast<Self, lazy>(self);
+            auto&& this_ = self_cast(cpp_forward(self));
             generate_value(cpp_forward(this_));
             return cpp_forward(this_).value_;
         }
 
-        template<typename Self>
-        constexpr decltype(auto) cget(this const Self&& self) noexcept
+        constexpr decltype(auto) cget(this const auto&& self) noexcept
         {
-            return forward_cast<const Self, lazy>(self).value_;
+            return self_cast(cpp_forward(self)).value_;
         }
 
-        template<typename Self>
-        constexpr decltype(auto) cget(this const Self& self) noexcept
+        constexpr decltype(auto) cget(this const auto& self) noexcept
         {
-            return forward_cast<const Self&, lazy>(self).value_;
+            return self_cast(self).value_;
         }
     }; // NOLINTEND(*-noexcept-*)
 
