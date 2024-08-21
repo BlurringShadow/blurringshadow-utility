@@ -2,22 +2,43 @@
 
 #include "../functional/invoke.h"
 #include "../type_traits/indexed_traits.h"
-#include "stdsharp/utility/forward_cast.h"
 
 namespace stdsharp::details
 {
     struct forward_bind_traits
     {
     private:
-        template<typename T>
-        using wrap_t = stdsharp::
-            value_wrapper<std::conditional_t<lvalue_ref<T>, T, std::remove_reference_t<T>>>;
+        struct wrap_fn
+        {
+            template<
+                typename... T,
+                std::constructible_from<T...> Indexed = stdsharp::indexed_values<T...>>
+            constexpr auto operator()(T&&... args) const
+                noexcept(nothrow_constructible_from<Indexed, T...>)
+            {
+                return Indexed{cpp_forward(args)...};
+            }
+        };
 
-        template<typename Binder, typename T>
-        using unwrap_t = decltype(std::declval<forward_like_t<Binder, T>>().get());
+        struct front_wrap_fn
+        {
+            template<std::size_t... I, typename Func, typename... T>
+            constexpr auto operator()(
+                const std::index_sequence<I...> /*unused*/,
+                Func&& func,
+                auto&& Indexed,
+                T&&... call_args
+            ) noexcept
+            {
+            }
+        };
 
+        template<typename Func, typename... BindArgs>
         struct bind_front
         {
+            Func func;
+            stdsharp::indexed_values<BindArgs...> args;
+
             template<
                 typename Self,
                 typename... Args,
@@ -25,7 +46,6 @@ namespace stdsharp::details
                     forward_like_t<Self, func_t>>
             constexpr decltype(auto) operator()(
                 this Self&& self,
-                const back_tag /*unused*/,
                 Args&&... args //
             ) noexcept(nothrow_invocable<Fn, Args..., unwrap_t<Self, BindArgs>...>)
             {
@@ -73,15 +93,13 @@ namespace stdsharp::details
 
         public:
             using func_t = std::decay_t<Func>;
-            using args_t = stdsharp::indexed_values<wrap_t<BindArgs>...>;
+            using args_t = stdsharp::indexed_values<BindArgs...>;
 
             func_t func;
             args_t args;
-
         };
 
     public:
-
     };
 }
 
