@@ -42,18 +42,17 @@ namespace stdsharp::details
             stdsharp::invocables<Func> func;
 
             template<
-                typename Self,
                 typename Indexed,
                 typename... T,
-                typename Seq = std::decay_t<Indexed>::index_sequence>
-                requires std::invocable<Self, Indexed, T..., Seq>
+                typename Seq = std::decay_t<Indexed>::index_sequence,
+                std::invocable<Seq, Indexed, T...> Self>
             constexpr decltype(auto) operator()(
                 this Self&& self,
                 Indexed&& indexed,
                 T&&... call_args //
-            ) noexcept(nothrow_invocable<Self, Indexed, T..., Seq>)
+            ) noexcept(nothrow_invocable<Self, Seq, Indexed, T...>)
             {
-                return cpp_forward(self)(cpp_forward(indexed), cpp_forward(call_args)..., Seq{});
+                return cpp_forward(self)(Seq{}, cpp_forward(indexed), cpp_forward(call_args)...);
             }
         };
 
@@ -66,9 +65,9 @@ namespace stdsharp::details
                 requires std::invocable<Func, forward_indexed_at_t<Indexed, I>..., T...>
             constexpr decltype(auto) operator()(
                 this auto&& self,
+                const std::index_sequence<I...> /*unused*/,
                 Indexed&& indexed,
-                T&&... call_args,
-                const std::index_sequence<I...> /*unused*/
+                T&&... call_args
             ) noexcept(nothrow_invocable<Func, forward_indexed_at_t<Indexed, I>..., T...>)
             {
                 return cpp_forward(self).func(
@@ -87,9 +86,9 @@ namespace stdsharp::details
                 requires std::invocable<Func, T..., forward_indexed_at_t<Indexed, I>...>
             constexpr decltype(auto) operator()(
                 this auto&& self,
+                const std::index_sequence<I...> /*unused*/,
                 Indexed&& indexed,
-                T&&... call_args,
-                const std::index_sequence<I...> /*unused*/
+                T&&... call_args
             ) noexcept(nothrow_invocable<Func, T..., forward_indexed_at_t<Indexed, I>...>)
             {
                 return cpp_forward(self).func(

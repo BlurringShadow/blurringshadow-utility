@@ -21,7 +21,7 @@ void foo()
     const t0 obj{};
     const indexed_values<const t0&> indexed{obj};
 
-    v0(indexed, obj);
+    v0(indexed);
 }
 
 SCENARIO("forward bind", "[functional][forward bind]")
@@ -42,7 +42,7 @@ SCENARIO("forward bind", "[functional][forward bind]")
             forward_bind_back([](int, const t0& obj) -> const t0& { return obj; }, const_obj);
 
         REQUIRE(&func() == &const_obj);
-        // REQUIRE(&back_func(1) == &const_obj);
+        REQUIRE(&back_func(1) == &const_obj);
     }
 
     // THEN("pass rvalue unique object and invoke")
