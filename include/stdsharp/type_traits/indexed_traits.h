@@ -96,12 +96,6 @@ namespace stdsharp
     public:
         indexed_values() = default;
 
-        constexpr indexed_values(T&&... t) noexcept(nothrow_list_initializable_from<m_base, T...>)
-            requires list_initializable_from<m_base, T...>
-            : m_base{cpp_move(t)...}
-        {
-        }
-
         template<typename... U>
             requires list_initializable_from<m_base, U...>
         constexpr indexed_values(U&&... t) noexcept(nothrow_list_initializable_from<m_base, U...>):

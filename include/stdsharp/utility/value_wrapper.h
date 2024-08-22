@@ -34,7 +34,7 @@ namespace stdsharp::details
     public:
         using m_base::m_base;
 
-        using m_base::get;
+        [[nodiscard]] constexpr decltype(auto) get() const noexcept { return m_base::get(); }
     };
 
     template<empty_type T>
@@ -75,19 +75,12 @@ namespace stdsharp
     private:
         static constexpr auto self_cast = fwd_cast<value_wrapper>;
 
+        using m_base = details::value_wrapper<T>;
+
     public:
         using value_type = T;
 
-        value_wrapper() = default;
-
-        using details::value_wrapper<T>::value_wrapper;
-
-        constexpr value_wrapper(T&& t)
-            noexcept(nothrow_constructible_from<details::value_wrapper<T>, T>)
-            requires std::constructible_from<details::value_wrapper<T>, T>
-            : details::value_wrapper<T>(cpp_move(t))
-        {
-        }
+        using m_base::m_base;
 
         [[nodiscard]] constexpr decltype(auto) cget(this const auto&& self) noexcept
         {

@@ -27,7 +27,7 @@ namespace stdsharp
     struct forward_cast_fn
     {
         template<typename From, typename NoRef = std::remove_reference_t<From>> // c-style cast allows cast to inaccessible base
-            requires(std::derived_from<NoRef, To> || std::derived_from<To, NoRef>)
+            requires(std::is_base_of_v<NoRef, To> || std::is_base_of_v<To, NoRef>)
         STDSHARP_INTRINSIC constexpr decltype(auto) operator()(From&& from) const noexcept
         {
             return (forward_like_t<From, To>)from; // NOLINT

@@ -1,10 +1,9 @@
 #pragma once
 
 #include "always_return.h" // IWYU pragma: export
-#include "bind_front.h" // IWYU pragma: export
+#include "bind.h" // IWYU pragma: export
 #include "compose.h" // IWYU pragma: export
 #include "conditional_invoke.h" // IWYU pragma: export
-#include "forward_bind.h" // IWYU pragma: export
 #include "invocables.h" // IWYU pragma: export
 #include "invoke.h" // IWYU pragma: export
 #include "invoke_r.h" // IWYU pragma: export

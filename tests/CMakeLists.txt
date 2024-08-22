@@ -17,7 +17,7 @@ set(src
     src/containers/actions.cpp
     src/containers/concepts.cpp
     src/filesystem/space_size.cpp
-    src/functional/forward_bind.cpp
+    src/functional/bind.cpp
     src/functional/invocables.cpp
     src/functional/pipeable.cpp
     src/functional/sequenced_invocables.cpp

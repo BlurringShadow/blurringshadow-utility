@@ -1,3 +1,4 @@
+#include "stdsharp/type_traits/object.h"
 #include "stdsharp/utility/value_wrapper.h"
 #include "test.h"
 
@@ -5,7 +6,7 @@ STDSHARP_TEST_NAMESPACES;
 
 SCENARIO("value_wrapper", "[utility][value wrapper]")
 {
-    struct empty_type
+    struct empty_type : empty_t
     {
         empty_type() = default;
 
@@ -17,6 +18,8 @@ SCENARIO("value_wrapper", "[utility][value wrapper]")
 
     STATIC_REQUIRE(constructible_from<value_wrapper<int>, int>);
     STATIC_REQUIRE(constructible_from<value_wrapper<int>, const int&>);
+    STATIC_REQUIRE(constructible_from<value_wrapper<int&>, int&>);
+    STATIC_REQUIRE(constructible_from<value_wrapper<const int&>, int&>);
 
     STATIC_REQUIRE(constructible_from<value_wrapper<string>, const char*>);
     STATIC_REQUIRE(constructible_from<value_wrapper<string>, string>);
@@ -27,6 +30,10 @@ SCENARIO("value_wrapper", "[utility][value wrapper]")
 
     STATIC_REQUIRE(nothrow_copyable<value_wrapper<int>>);
     STATIC_REQUIRE(nothrow_swappable<value_wrapper<int>>);
+    STATIC_REQUIRE(nothrow_copyable<value_wrapper<int&>>);
+    STATIC_REQUIRE(nothrow_copyable<value_wrapper<unique_object&>>);
+
+    STATIC_REQUIRE(requires { value_wrapper<empty_type>{}.get()(); });
 
     THEN("Set the wrapper value")
     {
