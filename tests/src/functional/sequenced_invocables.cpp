@@ -10,7 +10,6 @@ SCENARIO("sequenced invocables", "[functional][sequenced invocables]")
 
     REQUIRE(fn.get<0>()(1) == 1);
     REQUIRE(fn.cget<0>()(1) == 1);
-    REQUIRE(fn.invoke_at<0>(1) == 1);
 
     STATIC_REQUIRE(fn.size() == 2);
     STATIC_REQUIRE(invocable<fn_t, int>);

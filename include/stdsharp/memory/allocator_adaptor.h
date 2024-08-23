@@ -35,7 +35,7 @@ namespace stdsharp
         template<typename T>
         constexpr allocator_type& get_allocator(this T&& t) noexcept
         {
-            return forward_cast<T, allocator_adaptor>(t);
+            return fwd_cast<T, allocator_adaptor>(t);
         }
 
         allocator_adaptor() = default;

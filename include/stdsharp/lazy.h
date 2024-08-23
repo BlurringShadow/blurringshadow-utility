@@ -1,7 +1,7 @@
 #pragma once
 
 #include "concepts/object.h"
-#include "utility/forward_cast.h"
+#include "utility/fwd_cast.h"
 
 #include <memory>
 

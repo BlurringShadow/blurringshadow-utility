@@ -104,7 +104,7 @@ namespace stdsharp
     public:
         allocation_adaptor() = default;
 
-        template<typename Self, auto ForwardCast = forward_cast<Self, allocation_adaptor>>
+        template<typename Self, auto ForwardCast = fwd_cast<Self, allocation_adaptor>>
         constexpr void operator()(this Self&& self, auto&&... args)
             noexcept(noexcept(ForwardCast(self).dispatchers()(cpp_forward(args)...)))
             requires requires { ForwardCast(self).dispatchers()(cpp_forward(args)...); }

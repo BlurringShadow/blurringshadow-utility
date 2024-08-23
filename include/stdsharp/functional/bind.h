@@ -31,35 +31,14 @@ namespace stdsharp::details
 {
     struct forward_bind_traits
     {
-    private:
+    // private:
         template<typename T, std::size_t I>
         using forward_indexed_at_t = forward_like_t<T, typename std::decay_t<T>::template type<I>>;
 
-    public:
         template<typename Func>
-        struct seq_invoker_fn
+        struct front_invoker_fn
         {
             stdsharp::invocables<Func> func;
-
-            template<
-                typename Indexed,
-                typename... T,
-                typename Seq = std::decay_t<Indexed>::index_sequence,
-                std::invocable<Seq, Indexed, T...> Self>
-            constexpr decltype(auto) operator()(
-                this Self&& self,
-                Indexed&& indexed,
-                T&&... call_args //
-            ) noexcept(nothrow_invocable<Self, Seq, Indexed, T...>)
-            {
-                return cpp_forward(self)(Seq{}, cpp_forward(indexed), cpp_forward(call_args)...);
-            }
-        };
-
-        template<typename Func>
-        struct front_invoker_fn : seq_invoker_fn<Func>
-        {
-            using seq_invoker_fn<Func>::operator();
 
             template<std::size_t... I, typename Indexed, typename... T>
                 requires std::invocable<Func, forward_indexed_at_t<Indexed, I>..., T...>
@@ -78,9 +57,9 @@ namespace stdsharp::details
         };
 
         template<typename Func>
-        struct back_invoker_fn : seq_invoker_fn<Func>
+        struct back_invoker_fn
         {
-            using seq_invoker_fn<Func>::operator();
+            stdsharp::invocables<Func> func;
 
             template<std::size_t... I, typename Indexed, typename... T>
                 requires std::invocable<Func, T..., forward_indexed_at_t<Indexed, I>...>
@@ -106,26 +85,30 @@ namespace stdsharp::details
                 typename... Binds,
                 list_initializable_from<Func> Invoker = BindInvoker<std::decay_t<Func>>,
                 std::constructible_from<Binds...> Args = stdsharp::indexed_values<
-                    std::conditional_t<lvalue_ref<Binds>, Binds, std::remove_cvref_t<Binds>>...>>
-                requires std::invocable<bind_front_fn, Invoker, Args>
+                    std::conditional_t<lvalue_ref<Binds>, Binds, std::remove_cvref_t<Binds>>...>,
+                typename Seq = Args::index_sequence>
+                requires std::invocable<bind_front_fn, Invoker, Seq, Args>
             constexpr auto operator()(Func&& func, Binds&&... binds) const
-                noexcept(nothrow_list_initializable_from<Invoker, Func> && nothrow_invocable<Args, Binds...> && nothrow_invocable<bind_front_fn, Invoker, Args>)
+                noexcept(nothrow_list_initializable_from<Invoker, Func> && nothrow_invocable<Args, Binds...> && nothrow_invocable<bind_front_fn, Invoker, Seq, Args>)
             {
-                return bind_front(Invoker{cpp_forward(func)}, Args{cpp_forward(binds)...});
+                return bind_front(Invoker{cpp_forward(func)}, Seq{}, Args{cpp_forward(binds)...});
             }
         };
+
+    public:
+        using forward_bind_front_fn = make_bind<front_invoker_fn>;
+
+        using forward_bind_back_fn = make_bind<back_invoker_fn>;
     };
 }
 
 namespace stdsharp
 {
-    using forward_bind_front_fn =
-        details::forward_bind_traits::make_bind<details::forward_bind_traits::front_invoker_fn>;
+    using forward_bind_front_fn = details::forward_bind_traits::forward_bind_front_fn;
 
     inline constexpr forward_bind_front_fn forward_bind_front{};
 
-    using forward_bind_back_fn =
-        details::forward_bind_traits::make_bind<details::forward_bind_traits::back_invoker_fn>;
+    using forward_bind_back_fn = details::forward_bind_traits::forward_bind_back_fn;
 
     inline constexpr forward_bind_back_fn forward_bind_back{};
 }

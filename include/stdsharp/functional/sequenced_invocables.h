@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../tuple/get.h"
 #include "invocables.h"
 
 namespace stdsharp
@@ -10,16 +11,16 @@ namespace stdsharp
     private:
         using m_base = invocables<Func...>;
 
-        template<typename Self, std::size_t J, typename... Args>
+        template<typename Self, std::size_t I, typename... Args>
         static consteval auto first_invocable() noexcept
         {
-            if constexpr(J >= m_base::size()) return J;
+            if constexpr(I >= m_base::size()) return I;
             else
             {
-                using fn = forward_like_t<Self, typename m_base::template type<J>>;
+                using fn = forward_like_t<Self, typename m_base::template type<I>>;
 
-                if constexpr(std::invocable<fn, Args...>) return J;
-                else return first_invocable<Self, J + 1, Args...>();
+                if constexpr(std::invocable<fn, Args...>) return I;
+                else return first_invocable<Self, I + 1, Args...>();
             }
         }
 
@@ -29,17 +30,16 @@ namespace stdsharp
         template<
             typename Self,
             typename... Args,
-            auto J = first_invocable<Self, 0, Args...>(),
-            auto ForwardCast = fwd_cast<sequenced_invocables>>
-        constexpr decltype(auto) operator()(this Self&& self, Args&&... args) noexcept(
-            noexcept(ForwardCast(cpp_forward(self)).template invoke_at<J>(cpp_forward(args)...))
-        )
-            requires requires {
-                requires J < m_base::size();
-                ForwardCast(cpp_forward(self)).template invoke_at<J>(cpp_forward(args)...);
-            }
+            auto I = first_invocable<Self, 0, Args...>(),
+            std::invocable<Args...> Fn =
+                get_element_t<I, forward_like_t<Self, sequenced_invocables>>>
+        constexpr decltype(auto) operator()(this Self&& self, Args&&... args)
+            noexcept(nothrow_invocable<Fn, Args...>)
         {
-            return ForwardCast(cpp_forward(self)).template invoke_at<J>(cpp_forward(args)...);
+            return invoke(
+                cpo::get_element<I>(fwd_cast<sequenced_invocables>(cpp_forward(self))),
+                cpp_forward(args)...
+            );
         }
     };
 

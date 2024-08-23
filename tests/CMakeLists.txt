@@ -38,7 +38,7 @@ set(src
     src/type_traits/value_sequence.cpp
     src/utility/adl_proof.cpp
     src/utility/dispatcher.cpp
-    src/utility/forward_cast.cpp
+    src/utility/fwd_cast.cpp
     src/utility/utility.cpp
     src/utility/value_wrapper.cpp
     src/default_operator.cpp

@@ -221,6 +221,16 @@ namespace stdsharp::details
 
     template<typename... T, template<typename...> typename Inner, typename... U>
     consteval Inner<T...> template_rebind_impl(Inner<U...>);
+
+    template<typename, typename...>
+    struct dependent_type;
+
+    template<typename T, typename... U>
+        requires std::same_as<std::void_t<T, U...>, void>
+    struct dependent_type<T, U...>
+    {
+        using type = T;
+    };
 }
 
 namespace stdsharp
@@ -349,7 +359,7 @@ namespace stdsharp
     template<typename T>
     concept constant_value = requires {
         { T::value } noexcept;
-        requires (T::value, true);
+        requires(T::value, true);
     };
 
     template<auto Value>
@@ -440,6 +450,9 @@ namespace stdsharp
 
         constexpr bool operator==(const empty_t /*unused*/) const noexcept { return true; }
     } empty;
+
+    template<typename T, typename... U>
+    using dependent_type = details::dependent_type<T, U...>::type;
 }
 
 namespace std
