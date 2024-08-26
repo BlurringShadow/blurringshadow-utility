@@ -24,12 +24,6 @@ namespace stdsharp
 
         using difference_type = DifferenceType;
 
-        using default_operator::arithmetic::operator++;
-        using default_operator::arithmetic::operator*;
-        using default_operator::arithmetic::operator--;
-        using default_operator::subscript::operator[];
-        using default_operator::arithmetic::operator-;
-
         constexpr decltype(auto) operator-=(this auto& u, const auto& diff)
             noexcept(noexcept(u += -diff))
             requires requires { u += -diff; }

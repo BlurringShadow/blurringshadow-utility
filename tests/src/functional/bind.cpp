@@ -4,25 +4,6 @@
 
 STDSHARP_TEST_NAMESPACES;
 
-void foo()
-{
-    struct t0 : unique_object
-    {
-    };
-
-    struct fn
-    {
-        const t0& operator()(t0&& obj) const { return obj; }
-    };
-
-    using invoker = stdsharp::details::forward_bind_traits::front_invoker_fn<fn>;
-
-    invoker v0{};
-    indexed_values<t0> indexed{t0{}};
-
-    cpp_move(v0)(index_sequence<0>{}, cpp_move(indexed));
-}
-
 SCENARIO("forward bind", "[functional][forward bind]")
 {
     struct t0 : unique_object
@@ -47,11 +28,10 @@ SCENARIO("forward bind", "[functional][forward bind]")
     THEN("pass rvalue unique object and invoke")
     {
         auto func = forward_bind_front([](t0&& obj) -> t0 { return obj; }, t0{});
-
         auto back_func = forward_bind_back([](int, t0&& obj) -> t0 { return obj; }, t0{});
 
-        // [[maybe_unused]] auto&& new_obj = cpp_move(func)();
-        // [[maybe_unused]] auto&& new_back_obj = cpp_move(back_func)(1);
+        [[maybe_unused]] auto&& new_obj = cpp_move(func)();
+        [[maybe_unused]] auto&& new_back_obj = cpp_move(back_func)(1);
     }
 
     THEN("pass lvalue unique object and invoke")

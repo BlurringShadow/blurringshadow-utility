@@ -28,11 +28,11 @@ class t2 : t1
 
 SCENARIO("forward cast", "[utility][forward cast]")
 {
-    STATIC_REQUIRE(same_as<forward_like_t<m0, const m0>, m0&&>);
+    STATIC_REQUIRE(same_as<forward_like_t<m0, const m0&>, m0&&>);
     STATIC_REQUIRE(same_as<forward_like_t<m0&, m0>, m0&>);
     STATIC_REQUIRE(same_as<forward_like_t<const m0&, m0>, const m0&>);
-    STATIC_REQUIRE(same_as<forward_like_t<const m0&, m0&>, const m0&>);
-    STATIC_REQUIRE(same_as<forward_like_t<const volatile m0&, m0&&>, const volatile m0&>);
+    STATIC_REQUIRE(same_as<forward_like_t<const m0&&, m0&>, const m0&&>);
+    STATIC_REQUIRE(same_as<forward_like_t<const volatile m0&&, m0&>, const volatile m0&&>);
 
     GIVEN("t0")
     {

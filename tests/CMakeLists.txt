@@ -39,7 +39,6 @@ set(src
     src/utility/adl_proof.cpp
     src/utility/dispatcher.cpp
     src/utility/fwd_cast.cpp
-    src/utility/utility.cpp
     src/utility/value_wrapper.cpp
     src/default_operator.cpp
     src/lazy.cpp

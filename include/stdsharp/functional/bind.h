@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../tuple/get.h"
 #include "invocables.h"
 
 namespace stdsharp
@@ -31,26 +32,23 @@ namespace stdsharp::details
 {
     struct forward_bind_traits
     {
-    // private:
-        template<typename T, std::size_t I>
-        using forward_indexed_at_t = forward_like_t<T, typename std::decay_t<T>::template type<I>>;
-
+    private:
         template<typename Func>
         struct front_invoker_fn
         {
             stdsharp::invocables<Func> func;
 
             template<std::size_t... I, typename Indexed, typename... T>
-                requires std::invocable<Func, forward_indexed_at_t<Indexed, I>..., T...>
+                requires std::invocable<Func, get_element_t<I, Indexed>..., T...>
             constexpr decltype(auto) operator()(
                 this auto&& self,
                 const std::index_sequence<I...> /*unused*/,
                 Indexed&& indexed,
                 T&&... call_args
-            ) noexcept(nothrow_invocable<Func, forward_indexed_at_t<Indexed, I>..., T...>)
+            ) noexcept(nothrow_invocable<Func, get_element_t<I, Indexed>..., T...>)
             {
                 return cpp_forward(self).func(
-                    cpp_forward(indexed).template get<I>()...,
+                    cpo::get_element<I>(cpp_forward(indexed))...,
                     cpp_forward(call_args)...
                 );
             }
@@ -62,17 +60,17 @@ namespace stdsharp::details
             stdsharp::invocables<Func> func;
 
             template<std::size_t... I, typename Indexed, typename... T>
-                requires std::invocable<Func, T..., forward_indexed_at_t<Indexed, I>...>
+                requires std::invocable<Func, T..., get_element_t<I, Indexed>...>
             constexpr decltype(auto) operator()(
                 this auto&& self,
                 const std::index_sequence<I...> /*unused*/,
                 Indexed&& indexed,
                 T&&... call_args
-            ) noexcept(nothrow_invocable<Func, T..., forward_indexed_at_t<Indexed, I>...>)
+            ) noexcept(nothrow_invocable<Func, T..., get_element_t<I, Indexed>...>)
             {
                 return cpp_forward(self).func(
                     cpp_forward(call_args)...,
-                    cpp_forward(indexed).template get<I>()...
+                    cpo::get_element<I>(cpp_forward(indexed))...
                 );
             }
         };
@@ -85,11 +83,14 @@ namespace stdsharp::details
                 typename... Binds,
                 list_initializable_from<Func> Invoker = BindInvoker<std::decay_t<Func>>,
                 std::constructible_from<Binds...> Args = stdsharp::indexed_values<
-                    std::conditional_t<lvalue_ref<Binds>, Binds, std::remove_cvref_t<Binds>>...>,
+                    std::conditional_t<lvalue_ref<Binds>, Binds, std::decay_t<Binds>>...>,
                 typename Seq = Args::index_sequence>
                 requires std::invocable<bind_front_fn, Invoker, Seq, Args>
-            constexpr auto operator()(Func&& func, Binds&&... binds) const
-                noexcept(nothrow_list_initializable_from<Invoker, Func> && nothrow_invocable<Args, Binds...> && nothrow_invocable<bind_front_fn, Invoker, Seq, Args>)
+            constexpr auto operator()(Func&& func, Binds&&... binds) const noexcept( //
+                nothrow_list_initializable_from<Invoker, Func> &&
+                nothrow_constructible_from<Args, Binds...> &&
+                nothrow_invocable<bind_front_fn, Invoker, Seq, Args> //
+            )
             {
                 return bind_front(Invoker{cpp_forward(func)}, Seq{}, Args{cpp_forward(binds)...});
             }

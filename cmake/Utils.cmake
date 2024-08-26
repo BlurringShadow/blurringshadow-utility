@@ -402,3 +402,13 @@ function(target_cmake_format target_name)
         USES_TERMINAL
     )
 endfunction()
+
+function(target_clang_ast target type)
+    cmake_parse_arguments(ARG "" "" "EXTRA_ARGS" ${ARGN})
+
+    target_compile_options(
+        ${target}
+        ${type}
+        "$<$<CXX_COMPILER_ID:Clang>: -Xclang -fsyntax-only -ast-dump=json ${ARG_EXTRA_ARGS}>"
+    )
+endfunction()

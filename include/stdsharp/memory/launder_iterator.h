@@ -2,30 +2,29 @@
 
 #include "../cassert/cassert.h"
 #include "../iterator/basic_iterator.h"
+#include "../utility/fwd_cast.h"
 
 #include <new>
 
 #include "../compilation_config_in.h"
 
-namespace stdsharp::details
-{
-    template<typename T>
-    class launder_iterator
-    {
-    };
-
-}
-
 namespace stdsharp
 {
     template<typename T>
-    struct STDSHARP_EBO launder_iterator :
-        basic_iterator<T, std::ptrdiff_t, std::contiguous_iterator_tag>
+    class STDSHARP_EBO launder_iterator :
+        public basic_iterator<T, std::ptrdiff_t, std::contiguous_iterator_tag>
     {
+        using m_base = basic_iterator<T, std::ptrdiff_t, std::contiguous_iterator_tag>;
+
         T* ptr_;
 
+        static constexpr auto self_cast = fwd_cast<launder_iterator>;
+
     public:
-        using iterator_category = std::contiguous_iterator_tag;
+        using m_base::operator++;
+        using m_base::operator--;
+        using m_base::operator*;
+        using m_base::operator-;
 
         launder_iterator() = default;
 
@@ -39,22 +38,22 @@ namespace stdsharp
             return *data();
         }
 
-        constexpr auto& operator++() noexcept
+        constexpr auto& operator++(this non_const auto& self) noexcept
         {
-            ++ptr_;
-            return *this;
+            ++self_cast(self).ptr_;
+            return self;
         }
 
-        constexpr auto& operator--() noexcept
+        constexpr auto& operator--(this non_const auto& self) noexcept
         {
-            --ptr_;
-            return *this;
+            --self_cast(self).ptr_;
+            return self;
         }
 
-        constexpr auto& operator+=(const std::ptrdiff_t diff) noexcept
+        constexpr auto& operator+=(this non_const auto& self, const std::ptrdiff_t diff) noexcept
         {
-            ptr_ += diff;
-            return *this;
+            self_cast(self).ptr_ += diff;
+            return self;
         }
 
         [[nodiscard]] constexpr auto operator-(const launder_iterator iter) const noexcept

@@ -12,7 +12,7 @@ namespace stdsharp
         requires basic_lockable<Lockable>
     class synchronizer
     {
-        static constexpr auto self_cast = self_cast;
+        static constexpr auto self_cast = fwd_cast<synchronizer>;
 
     public:
         using lock_type = Lockable;

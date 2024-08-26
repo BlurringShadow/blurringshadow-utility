@@ -5,8 +5,12 @@ STDSHARP_TEST_NAMESPACES;
 
 SCENARIO("bitset iterator", "[bitset]")
 {
-    STATIC_REQUIRE(random_access_iterator<bitset_iterator<4>>);
-    STATIC_REQUIRE(constructible_from<bitset_iterator<4>, bitset<4>&, size_t>);
+    using bitset_iterator = bitset_iterator<4>;
+
+    STATIC_REQUIRE(same_as<bitset_iterator::value_type, bitset<4>::reference>);
+    STATIC_REQUIRE(same_as<bitset_const_iterator<4>::value_type, bool>);
+    STATIC_REQUIRE(random_access_iterator<bitset_iterator>);
+    STATIC_REQUIRE(constructible_from<bitset_iterator, bitset<4>&, size_t>);
 }
 
 SCENARIO("bitset range", "[bitset]")

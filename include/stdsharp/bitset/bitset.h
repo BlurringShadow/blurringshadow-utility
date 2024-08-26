@@ -3,49 +3,57 @@
 #include "../cassert/cassert.h"
 #include "../cstdint/cstdint.h"
 #include "../iterator/basic_iterator.h"
+#include "../utility/fwd_cast.h"
 
 #include <bitset>
 #include <ranges>
 
-#include "../compilation_config_in.h"
-
 namespace stdsharp::details
 {
     template<typename Bitset>
-    class bitset_iterator : public basic_iterator<decltype(Bitset{}[0]), ssize_t>
+    class bitset_iterator :
+        public basic_iterator<std::decay_t<decltype(Bitset{}[0])>, ssize_t>
     {
+        using m_base = basic_iterator<
+            typename bitset_iterator::value_type,
+            typename bitset_iterator::difference_type>;
+
     public:
         using bitset = Bitset;
 
-    protected:
+        using m_base::operator++;
+        using m_base::operator--;
+        using m_base::operator-;
+
+    private:
         bitset* set_{};
         std::size_t i_{};
+
+        static constexpr auto self_cast = fwd_cast<bitset_iterator>;
 
     public:
         bitset_iterator() = default;
 
-        constexpr bitset_iterator(bitset& set, const std::size_t index): set_(&set), i_(index)
-        {
-        }
+        constexpr bitset_iterator(bitset& set, const std::size_t index): set_(&set), i_(index) {}
 
         [[nodiscard]] constexpr decltype(auto) operator*() const { return (*set_)[i_]; }
 
-        constexpr auto& operator++() noexcept
+        constexpr auto& operator++(this non_const auto& self) noexcept
         {
-            ++i_;
-            return *this;
+            ++self_cast(self).i_;
+            return self;
         }
 
-        constexpr auto& operator--() noexcept
+        constexpr auto& operator--(this non_const auto& self) noexcept
         {
-            --i_;
-            return *this;
+            --self_cast(self).i_;
+            return self;
         }
 
-        constexpr auto& operator+=(const ssize_t n) noexcept
+        constexpr auto& operator+=(this non_const auto& self, const ssize_t n) noexcept
         {
-            i_ += n;
-            return *this;
+            self_cast(self).i_ += n;
+            return self;
         }
 
         [[nodiscard]] constexpr auto operator-(const bitset_iterator& other) const noexcept
@@ -56,7 +64,7 @@ namespace stdsharp::details
 
         [[nodiscard]] constexpr decltype(auto) operator[](const ssize_t index) const
         {
-            return set_[i_ + index];
+            return (*set_)[i_ + index];
         }
 
         [[nodiscard]] constexpr bool operator==(const bitset_iterator& other) const noexcept
@@ -122,5 +130,3 @@ namespace stdsharp
         }
     } bitset_rng{};
 }
-
-#include "../compilation_config_out.h"
