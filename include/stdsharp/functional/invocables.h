@@ -16,15 +16,16 @@ namespace stdsharp::details
         template<
             typename Self,
             typename... Args,
-            typename FwdCast = fwd_cast_fn<Base>,
-            typename Fn = forward_like_t<
-                forward_like_t<Self, Base>,
+            std::invocable<Args...> Fn = forward_like_t<
+                Self,
                 typename stdsharp::dependent_type<Base, Self>::template type<I>>>
-            requires std::invocable<invoke_fn, Fn, Args...>
         constexpr decltype(auto) operator()(this Self&& self, Args&&... args)
-            noexcept(nothrow_invocable<invoke_fn, Fn, Args...>)
+            noexcept(nothrow_invocable<Fn, Args...>)
         {
-            return invoke(FwdCast{}(cpp_forward(self)).template get<I>(), cpp_forward(args)...);
+            return invoke(
+                fwd_cast<Base>(cpp_forward(self)).template get<I>(),
+                cpp_forward(args)...
+            );
         }
     };
 

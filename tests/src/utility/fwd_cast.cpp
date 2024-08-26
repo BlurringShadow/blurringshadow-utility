@@ -1,12 +1,17 @@
+#include "stdsharp/macros.h"
 #include "stdsharp/utility/fwd_cast.h"
 #include "test.h"
-#include "stdsharp/macros.h"
 
 STDSHARP_TEST_NAMESPACES;
 
+struct m0
+{
+    bool operator==(const m0&) const = default;
+};
+
 struct t0
 {
-    int v;
+    m0 v;
 
     bool operator==(const t0&) const = default;
 
@@ -23,11 +28,11 @@ class t2 : t1
 
 SCENARIO("forward cast", "[utility][forward cast]")
 {
-    STATIC_REQUIRE(same_as<forward_like_t<int, const int>, int&&>);
-    STATIC_REQUIRE(same_as<forward_like_t<int&, int>, int&>);
-    STATIC_REQUIRE(same_as<forward_like_t<const int&, int>, const int&>);
-    STATIC_REQUIRE(same_as<forward_like_t<const int&, int&>, const int&>);
-    STATIC_REQUIRE(same_as<forward_like_t<const volatile int&, int&&>, const volatile int&>);
+    STATIC_REQUIRE(same_as<forward_like_t<m0, const m0>, m0&&>);
+    STATIC_REQUIRE(same_as<forward_like_t<m0&, m0>, m0&>);
+    STATIC_REQUIRE(same_as<forward_like_t<const m0&, m0>, const m0&>);
+    STATIC_REQUIRE(same_as<forward_like_t<const m0&, m0&>, const m0&>);
+    STATIC_REQUIRE(same_as<forward_like_t<const volatile m0&, m0&&>, const volatile m0&>);
 
     GIVEN("t0")
     {
@@ -71,7 +76,7 @@ SCENARIO("forward cast", "[utility][forward cast]")
         STATIC_REQUIRE(same_as<decltype(fwd_cast<t0>(std::move(v))), t0&&>);
         STATIC_REQUIRE(same_as<decltype(fwd_cast<t0>(std::move(as_const(v)))), const t0&&>);
 
-        STATIC_REQUIRE(same_as<decltype(fwd_cast<t0>(v).get()), int&>);
-        STATIC_REQUIRE(same_as<decltype(fwd_cast<t0>(std::move(v)).get()), int&&>);
+        STATIC_REQUIRE(same_as<decltype(fwd_cast<t0>(v).get()), m0&>);
+        STATIC_REQUIRE(same_as<decltype(fwd_cast<t0>(std::move(v)).get()), m0&&>);
     }
 }

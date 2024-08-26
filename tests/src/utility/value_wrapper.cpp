@@ -33,6 +33,15 @@ SCENARIO("value_wrapper", "[utility][value wrapper]")
     STATIC_REQUIRE(nothrow_copyable<value_wrapper<int&>>);
     STATIC_REQUIRE(nothrow_copyable<value_wrapper<unique_object&>>);
 
+    {
+        [[maybe_unused]] value_wrapper<empty_type> wrapper;
+
+        STATIC_REQUIRE(same_as<decltype(wrapper.get()), empty_type&>);
+        STATIC_REQUIRE(same_as<decltype(cpp_move(wrapper).get()), empty_type&&>);
+        STATIC_REQUIRE(same_as<decltype(wrapper.cget()), const empty_type&>);
+        STATIC_REQUIRE(same_as<decltype(cpp_move(wrapper).cget()), const empty_type&&>);
+    }
+
     STATIC_REQUIRE(requires { value_wrapper<empty_type>{}.get()(); });
 
     THEN("Set the wrapper value")

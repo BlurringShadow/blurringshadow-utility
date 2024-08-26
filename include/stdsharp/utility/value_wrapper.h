@@ -54,7 +54,7 @@ namespace stdsharp::details
 
         [[nodiscard]] constexpr decltype(auto) get(this auto&& self) noexcept
         {
-            return fwd_cast<T>(fwd_cast<value_wrapper>(self));
+            return fwd_cast<T>(fwd_cast<value_wrapper>(cpp_forward(self)));
         }
     };
 

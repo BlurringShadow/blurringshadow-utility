@@ -25,7 +25,7 @@ struct f3
 
 struct f4
 {
-    constexpr auto operator()() const && { return 4; }
+    constexpr auto operator()() const&& { return 4; }
 };
 
 using invocables_t = invocables<f0, f1, f2, f3, f4>;
@@ -41,6 +41,7 @@ SCENARIO("invocables", "[function][invocables]")
     STATIC_REQUIRE(fn.cget<1>()('1') == 1);
     STATIC_REQUIRE(invocables_t{}() == 4);
 
+    STATIC_REQUIRE(constructible_from<invocables_t, f0, f1, f2, f3, f4>);
     STATIC_REQUIRE(constructible_from<invocables_t, f0, f1, f2, f3>);
     STATIC_REQUIRE(constructible_from<invocables_t, f0, f1, f2>);
     STATIC_REQUIRE(constructible_from<invocables_t, f0, f1>);

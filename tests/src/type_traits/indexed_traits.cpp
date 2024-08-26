@@ -14,30 +14,34 @@ SCENARIO("indexed traits", "[type traits][indexed traits]")
 
     GIVEN("indexed values type")
     {
-        using indexed_values = indexed_values<int, float>;
+        struct t0
+        {
+        };
+
+        using indexed_values = indexed_values<t0, float>;
 
         THEN("type is constructible")
         {
             STATIC_REQUIRE(default_initializable<indexed_values>);
-            STATIC_REQUIRE(constructible_from<indexed_values, int, float>);
-            STATIC_REQUIRE(constructible_from<indexed_values, const int&, const float&>);
+            STATIC_REQUIRE(constructible_from<indexed_values, t0, float>);
+            STATIC_REQUIRE(constructible_from<indexed_values, const t0&, const float&>);
         }
 
         [[maybe_unused]] indexed_values values;
 
         THEN("indexed value getter type")
         {
-            STATIC_REQUIRE(same_as<decltype(values.get<0>()), int&>);
-            STATIC_REQUIRE(same_as<decltype(values.cget<0>()), const int&>);
-            STATIC_REQUIRE(same_as<decltype(as_const(values).get<0>()), const int&>);
-            STATIC_REQUIRE(same_as<decltype(cpp_move(values).get<0>()), int&&>);
-            STATIC_REQUIRE(same_as<decltype(cpp_move(values).cget<0>()), const int&&>);
-            STATIC_REQUIRE(same_as<decltype(cpp_move(as_const(values)).get<0>()), const int&&>);
+            STATIC_REQUIRE(same_as<decltype(values.get<0>()), t0&>);
+            STATIC_REQUIRE(same_as<decltype(values.cget<0>()), const t0&>);
+            STATIC_REQUIRE(same_as<decltype(as_const(values).get<0>()), const t0&>);
+            STATIC_REQUIRE(same_as<decltype(cpp_move(values).get<0>()), t0&&>);
+            STATIC_REQUIRE(same_as<decltype(cpp_move(values).cget<0>()), const t0&&>);
+            STATIC_REQUIRE(same_as<decltype(cpp_move(as_const(values)).get<0>()), const t0&&>);
 
-            STATIC_REQUIRE(same_as<decltype(cpo::get_element<0>(values)), int&>);
-            STATIC_REQUIRE(same_as<get_element_t<0, indexed_values&>, int&>);
-            STATIC_REQUIRE(same_as<decltype(cpo::cget_element<0>(values)), const int&>);
-            STATIC_REQUIRE(same_as<cget_element_t<0, indexed_values&>, const int&>);
+            STATIC_REQUIRE(same_as<get_element_t<0, indexed_values&>, t0&>);
+            STATIC_REQUIRE(same_as<cget_element_t<0, indexed_values&>, const t0&>);
+            STATIC_REQUIRE(same_as<get_element_t<0, indexed_values&&>, t0&&>);
+            STATIC_REQUIRE(same_as<cget_element_t<0, indexed_values&&>, const t0&&>);
         }
     }
 }
