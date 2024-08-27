@@ -32,23 +32,11 @@ namespace stdsharp
 
         using no_swap_propagation = allocator_no_swap_propagation_t;
 
-        template<typename T>
-        constexpr allocator_type& get_allocator(this T&& t) noexcept
-        {
-            return fwd_cast<T, allocator_adaptor>(t);
-        }
+        constexpr allocator_type& get_allocator() noexcept { return *this; }
+
+        constexpr const allocator_type& get_allocator() const noexcept { return *this; }
 
         allocator_adaptor() = default;
-
-        constexpr allocator_adaptor(const allocator_adaptor& other) noexcept:
-            allocator_adaptor(other.get_allocator())
-        {
-        }
-
-        constexpr allocator_adaptor(allocator_adaptor&& other) noexcept:
-            allocator_adaptor(cpp_move(other).get_allocator())
-        {
-        }
 
         constexpr allocator_adaptor(const allocator_type& other) noexcept:
             allocator_type(traits::select_on_container_copy_construction(other))
@@ -66,11 +54,6 @@ namespace stdsharp
             : allocator_type(cpp_forward(args)...)
         {
         }
-
-        allocator_adaptor& operator=(const allocator_adaptor&) = delete;
-        allocator_adaptor& operator=(allocator_adaptor&&) = delete;
-
-        ~allocator_adaptor() = default;
 
     private:
         static constexpr auto always_equal_v = traits::always_equal_v;

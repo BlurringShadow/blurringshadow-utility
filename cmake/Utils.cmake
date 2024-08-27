@@ -133,7 +133,7 @@ function(config_exe exe_name)
 endfunction()
 
 # install library
-function(target_install target)
+function(target_install target_name)
     include(CMakePackageConfigHelpers)
     include(GNUInstallDirs)
 
@@ -145,10 +145,10 @@ function(target_install target)
         ${ARGN}
     )
 
-    get_target_property(target_type ${target} TYPE)
+    get_target_property(target_type ${target_name} TYPE)
 
     if(NOT DEFINED ARG_BIN_DIR)
-        get_target_property(ARG_BIN_DIR ${target} BINARY_DIR)
+        get_target_property(ARG_BIN_DIR ${target_name} BINARY_DIR)
         verbose_message("Use default binary dir ${ARG_BIN_DIR}")
     endif()
 
@@ -157,7 +157,7 @@ function(target_install target)
     endif()
 
     if(NOT DEFINED ARG_VER)
-        get_target_property(ARG_VER ${target} VERSION)
+        get_target_property(ARG_VER ${target_name} VERSION)
         verbose_message("Use default version ${ARG_VER}")
     endif()
 
@@ -167,24 +167,24 @@ function(target_install target)
     endif()
 
     install(
-        TARGETS ${target}
-        EXPORT ${target}Targets
+        TARGETS ${target_name}
+        EXPORT ${target_name}Targets
         LIBRARY
-            DESTINATION "${CMAKE_INSTALL_LIBDIR}/${target}"
-            COMPONENT "${target}_Runtime"
-            NAMELINK_COMPONENT "${target}_Development"
+            DESTINATION "${CMAKE_INSTALL_LIBDIR}/${target_name}"
+            COMPONENT "${target_name}_Runtime"
+            NAMELINK_COMPONENT "${target_name}_Development"
         ARCHIVE
-            DESTINATION "${CMAKE_INSTALL_LIBDIR}/${target}"
-            COMPONENT "${target}_Development"
+            DESTINATION "${CMAKE_INSTALL_LIBDIR}/${target_name}"
+            COMPONENT "${target_name}_Development"
         RUNTIME
-            DESTINATION "${CMAKE_INSTALL_BINDIR}/${target}"
-            COMPONENT "${target}_Runtime"
+            DESTINATION "${CMAKE_INSTALL_BINDIR}/${target_name}"
+            COMPONENT "${target_name}_Runtime"
         BUNDLE
-            DESTINATION "${CMAKE_INSTALL_BINDIR}/${target}"
-            COMPONENT "${target}_Runtime"
+            DESTINATION "${CMAKE_INSTALL_BINDIR}/${target_name}"
+            COMPONENT "${target_name}_Runtime"
         PUBLIC_HEADER
             DESTINATION "${ARG_INC_DST}"
-            COMPONENT "${target}_Development"
+            COMPONENT "${target_name}_Development"
         INCLUDES DESTINATION "${ARG_INC_DST}"
     )
 
@@ -195,28 +195,28 @@ function(target_install target)
         set(ARG_ARCH_INDEPENDENT YES)
     endif()
 
-    set(${target}_INSTALL_CMAKEDIR
-        "${CMAKE_INSTALL_LIBDIR}/cmake/${target}-${ARG_VER}"
+    set(${target_name}_INSTALL_CMAKEDIR
+        "${CMAKE_INSTALL_LIBDIR}/cmake/${target_name}-${ARG_VER}"
     )
-    set(${target}_INSTALL_CMAKEDIR "${${target}_INSTALL_CMAKEDIR}" PARENT_SCOPE)
+    set(${target_name}_INSTALL_CMAKEDIR "${${target_name}_INSTALL_CMAKEDIR}" PARENT_SCOPE)
 
     verbose_message(
-      "CMake files install directory: ${${target}_INSTALL_CMAKEDIR}"
+      "CMake files install directory: ${${target_name}_INSTALL_CMAKEDIR}"
     )
 
     install(
-        EXPORT ${target}Targets
-        DESTINATION "${${target}_INSTALL_CMAKEDIR}"
+        EXPORT ${target_name}Targets
+        DESTINATION "${${target_name}_INSTALL_CMAKEDIR}"
         NAMESPACE ${ARG_NAMESPACE}::
-        COMPONENT "${target}_Development"
+        COMPONENT "${target_name}_Development"
     )
 
     if(ARG_ARCH_INDEPENDENT)
         set(wbpvf_extra_args ARCH_INDEPENDENT)
     endif()
 
-    set(version_config "${ARG_BIN_DIR}/${target}ConfigVersion.cmake")
-    set(target_config "${ARG_BIN_DIR}/${target}Config.cmake")
+    set(version_config "${ARG_BIN_DIR}/${target_name}ConfigVersion.cmake")
+    set(target_config "${ARG_BIN_DIR}/${target_name}Config.cmake")
 
     write_basic_package_version_file(
         "${version_config}"
@@ -237,7 +237,7 @@ list(APPEND CMAKE_MODULE_PATH $\{CMAKE_CURRENT_LIST_DIR})
 foreach(dependency ${ARG_DEPENDENCIES})
     find_dependency($\{dependency})
 endforeach()
-include($\{CMAKE_CURRENT_LIST_DIR}/${target}Targets.cmake)"
+include($\{CMAKE_CURRENT_LIST_DIR}/${target_name}Targets.cmake)"
             @ONLY
             ESCAPE_QUOTES
         )
@@ -245,20 +245,20 @@ include($\{CMAKE_CURRENT_LIST_DIR}/${target}Targets.cmake)"
 
     install(
         FILES "${version_config}" "${target_config}"
-        DESTINATION "${${target}_INSTALL_CMAKEDIR}"
-        COMPONENT "${target}_Development"
+        DESTINATION "${${target_name}_INSTALL_CMAKEDIR}"
+        COMPONENT "${target_name}_Development"
     )
 
-    get_target_property(target_included ${target} INTERFACE_INCLUDE_DIRECTORIES)
+    get_target_property(target_included ${target_name} INTERFACE_INCLUDE_DIRECTORIES)
 
     install(
         DIRECTORY "${target_included}"
         DESTINATION "${ARG_INC_DST}"
-        COMPONENT "${target}_Development"
+        COMPONENT "${target_name}_Development"
     )
 endfunction()
 
-function(target_clang_tidy target)
+function(target_clang_tidy target_name)
     cmake_parse_arguments(ARG "" "ENABLE_PROFILE" "" ${ARGN})
 
     find_program(CLANG_TIDY clang-tidy)
@@ -271,17 +271,17 @@ function(target_clang_tidy target)
     message(STATUS "found clang-tidy: ${CLANG_TIDY}")
 
     if(ARG_ENABLE_PROFILE)
-        get_target_property(bin_dir ${target} BINARY_DIR)
+        get_target_property(bin_dir ${target_name} BINARY_DIR)
         set(report_folder "${bin_dir}/clang-tidy-report")
 
         add_custom_target(
-            ${target}ClangTidyClean
+            ${target_name}ClangTidyClean
             ALL
             COMMAND "${CMAKE_COMMAND}" -E rm ${report_folder}
             USES_TERMINAL
         )
 
-        add_dependencies(${target} ${target}ClangTidyClean)
+        add_dependencies(${target_name} ${target_name}ClangTidyClean)
 
         list(
             APPEND
@@ -296,10 +296,10 @@ function(target_clang_tidy target)
         list(APPEND CLANG_TIDY "--extra-arg=-EHsc") #TODO: https://github.com/llvm/llvm-project/issues/44701
     endif()
 
-    set_target_properties(${target} PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY}")
+    set_target_properties(${target_name} PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY}")
 endfunction()
 
-function(target_clang_sanitizer target type)
+function(target_clang_sanitizer target_name type)
     cmake_parse_arguments(ARG "" "" "SANITIZER" ${ARGN})
 
     foreach(sanitizer ${ARG_SANITIZER})
@@ -309,12 +309,12 @@ function(target_clang_sanitizer target type)
     set(clang_debug_only "$<AND:$<CXX_COMPILER_ID:Clang>,$<CONFIG:DEBUG>>")
 
     target_compile_options(
-        ${target}
+        ${target_name}
         ${type}
         "SHELL: $<${clang_debug_only}: ${sanitizer_options} -fno-omit-frame-pointer -fno-optimize-sibling-calls>"
     )
     target_link_options(
-        ${target}
+        ${target_name}
         ${type}
         "SHELL: $<${clang_debug_only}:${sanitizer_options}>"
     )
@@ -400,15 +400,5 @@ function(target_cmake_format target_name)
         ${target_name}CMakeFormat
         COMMAND "${gersemi}" -i ${ARG_EXTRA_ARGS} ${ARG_SRC}
         USES_TERMINAL
-    )
-endfunction()
-
-function(target_clang_ast target type)
-    cmake_parse_arguments(ARG "" "" "EXTRA_ARGS" ${ARGN})
-
-    target_compile_options(
-        ${target}
-        ${type}
-        "$<$<CXX_COMPILER_ID:Clang>: -Xclang -fsyntax-only -ast-dump=json ${ARG_EXTRA_ARGS}>"
     )
 endfunction()
