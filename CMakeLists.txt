@@ -13,20 +13,15 @@ add_library(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
 #
 # Model project dependencies
 #
-find_package(range-v3 CONFIG REQUIRED)
 find_package(ctre CONFIG REQUIRED)
-find_package(nameof CONFIG REQUIRED)
 find_package(Microsoft.GSL CONFIG REQUIRED)
 
-target_link_libraries(
-    ${PROJECT_NAME}
-    INTERFACE range-v3::range-v3 Microsoft.GSL::GSL ctre::ctre nameof::nameof
-)
+target_link_libraries(${PROJECT_NAME} INTERFACE Microsoft.GSL::GSL ctre::ctre)
 
 verbose_message("Successfully added all dependencies and linked against them.")
 
 target_install(${PROJECT_NAME} COMPATIBILITY SameMajorVersion DEPENDENCIES
-               ctre;range-v3;nameof;Microsoft.GSL
+               ctre;range-v3;Microsoft.GSL
 )
 
 install(

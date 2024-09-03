@@ -3,6 +3,8 @@
 
 STDSHARP_TEST_NAMESPACES;
 
+using namespace stdsharp::containers;
+
 TEMPLATE_TEST_CASE("Scenario: container concept", "[containers][concepts]", int, unique_ptr<int>)
 {
     {

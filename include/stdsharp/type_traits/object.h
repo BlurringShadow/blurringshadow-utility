@@ -68,7 +68,9 @@ namespace stdsharp
                 return true;
             }
 
-            if(pre != next && is_neq(next))
+            if(is_eq(next)) return true;
+
+            if(pre != next)
             {
                 pre = ordering::unordered;
                 return false;
@@ -81,32 +83,32 @@ namespace stdsharp
             operator<=>(const lifetime_req left, const lifetime_req right) noexcept
         {
             ordering cmp = left.default_construct <=> right.default_construct;
-            cmp_impl(cmp, left.move_construct <=> right.move_construct) || //
-                cmp_impl(cmp, left.copy_construct <=> right.copy_construct) || //
-                cmp_impl(cmp, left.move_assign <=> right.move_assign) || //
-                cmp_impl(cmp, left.copy_assign <=> right.copy_assign) || //
-                cmp_impl(cmp, left.destruct <=> right.destruct) || //
+
+            cmp_impl(cmp, left.move_construct <=> right.move_construct) && //
+                cmp_impl(cmp, left.copy_construct <=> right.copy_construct) && //
+                cmp_impl(cmp, left.move_assign <=> right.move_assign) && //
+                cmp_impl(cmp, left.copy_assign <=> right.copy_assign) && //
+                cmp_impl(cmp, left.destruct <=> right.destruct) && //
                 cmp_impl(cmp, left.swap <=> right.swap);
 
             return cmp;
         }
-
-        [[nodiscard]] friend constexpr auto
-            operator==(const lifetime_req left, const lifetime_req right) noexcept
-
-        {
-            return left.default_construct == right.default_construct &&
-                left.move_construct == right.move_construct &&
-                left.copy_construct == right.copy_construct &&
-                left.move_assign == right.move_assign && //
-                left.copy_assign == right.copy_assign && //
-                left.destruct == right.destruct && //
-                left.swap == right.swap;
-        }
     };
 
+    [[nodiscard]] constexpr auto
+        operator==(const lifetime_req& left, const lifetime_req& right) noexcept
+    {
+        return left.default_construct == right.default_construct &&
+            left.move_construct == right.move_construct &&
+            left.copy_construct == right.copy_construct &&
+            left.move_assign == right.move_assign && //
+            left.copy_assign == right.copy_assign && //
+            left.destruct == right.destruct && //
+            left.swap == right.swap;
+    }
+
     [[nodiscard]] constexpr lifetime_req
-        at_least(const lifetime_req left, const lifetime_req right) noexcept
+        at_least(const lifetime_req& left, const lifetime_req& right) noexcept
     {
         return {
             std::max(left.default_construct, right.default_construct),

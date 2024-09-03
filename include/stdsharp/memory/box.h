@@ -101,15 +101,19 @@ namespace stdsharp
             return cpp_forward(self).values_.template get<0>();
         }
 
+        static constexpr auto self_cast = fwd_cast<allocation_adaptor>;
+
     public:
         allocation_adaptor() = default;
 
-        template<typename Self, auto ForwardCast = fwd_cast<Self, allocation_adaptor>>
-        constexpr void operator()(this Self&& self, auto&&... args)
-            noexcept(noexcept(ForwardCast(self).dispatchers()(cpp_forward(args)...)))
-            requires requires { ForwardCast(self).dispatchers()(cpp_forward(args)...); }
+        template<
+            typename Self,
+            typename... Args,
+            std::invocable<Args...> Dispatchers = forward_like_t<Self, m_dispatchers>>
+        constexpr void operator()(this Self&& self, Args&&... args)
+            noexcept(nothrow_invocable<Dispatchers, Args...>)
         {
-            ForwardCast(self).dispatchers()(cpp_forward(args)...);
+            self_cast(cpp_forward(self)).dispatchers()(cpp_forward(args)...);
         }
 
         [[nodiscard]] auto& type() const noexcept { return type_; }

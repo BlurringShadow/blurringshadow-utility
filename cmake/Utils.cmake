@@ -198,7 +198,10 @@ function(target_install target_name)
     set(${target_name}_INSTALL_CMAKEDIR
         "${CMAKE_INSTALL_LIBDIR}/cmake/${target_name}-${ARG_VER}"
     )
-    set(${target_name}_INSTALL_CMAKEDIR "${${target_name}_INSTALL_CMAKEDIR}" PARENT_SCOPE)
+    set(${target_name}_INSTALL_CMAKEDIR
+        "${${target_name}_INSTALL_CMAKEDIR}"
+        PARENT_SCOPE
+    )
 
     verbose_message(
       "CMake files install directory: ${${target_name}_INSTALL_CMAKEDIR}"
@@ -249,7 +252,11 @@ include($\{CMAKE_CURRENT_LIST_DIR}/${target_name}Targets.cmake)"
         COMPONENT "${target_name}_Development"
     )
 
-    get_target_property(target_included ${target_name} INTERFACE_INCLUDE_DIRECTORIES)
+    get_target_property(
+        target_included
+        ${target_name}
+        INTERFACE_INCLUDE_DIRECTORIES
+    )
 
     install(
         DIRECTORY "${target_included}"
@@ -296,7 +303,10 @@ function(target_clang_tidy target_name)
         list(APPEND CLANG_TIDY "--extra-arg=-EHsc") #TODO: https://github.com/llvm/llvm-project/issues/44701
     endif()
 
-    set_target_properties(${target_name} PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY}")
+    set_target_properties(
+        ${target_name}
+        PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY}"
+    )
 endfunction()
 
 function(target_clang_sanitizer target_name type)

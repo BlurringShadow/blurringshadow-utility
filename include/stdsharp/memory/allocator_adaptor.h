@@ -58,13 +58,6 @@ namespace stdsharp
     private:
         static constexpr auto always_equal_v = traits::always_equal_v;
 
-    public:
-        constexpr bool is_equal(const allocator_type& other) const noexcept
-        {
-            return always_equal_v || get_allocator() == other;
-        }
-
-    private:
         template<bool IsEqual, template<bool, bool> typename Propagation>
         struct on_assign
         {
@@ -132,6 +125,16 @@ namespace stdsharp
         };
 
     public:
+        constexpr bool operator==(const allocator_type& other) const noexcept
+        {
+            return always_equal_v || get_allocator() == other;
+        }
+
+        constexpr bool operator==(const allocator_adaptor& other) const noexcept
+        {
+            return *this == other.get_allocator();
+        }
+
         template<
             typename Fn,
             std::invocable<Fn&, const allocator_adaptor&> OnPropagate =

@@ -1,10 +1,10 @@
 #pragma once
 
 #include "../iterator/iterator.h"
-#include "../utility/utility.h"
+#include "../utility/cast_to.h"
+#include "../utility/fwd_cast.h"
 
-#include <range/v3/range.hpp>
-#include <range/v3/view.hpp>
+#include <gsl/gsl_assert>
 
 #include <ranges>
 
@@ -106,45 +106,77 @@ namespace stdsharp
 
             for(; begin != end; ++begin)
                 if(begin == in) return true;
+
             return false;
         }
 
-        template<std::ranges::range R>
-            requires std::sentinel_for<std::ranges::iterator_t<R>, std::ranges::iterator_t<R>>
-        constexpr bool operator()(R&& r, const const_iterator_t<R>& in) const noexcept
+        template<std::ranges::range R, typename ConstIter = const_iterator_t<R>>
+            requires std::invocable<is_iter_in_fn, ConstIter, ConstIter, ConstIter>
+        constexpr bool operator()(R&& r, const ConstIter& in) const noexcept
         {
-            return (*this)(std::ranges::cbegin(r), std::ranges::cend(r), in);
+            return (*this)(
+                std::ranges::cbegin(cpp_forward(r)),
+                std::ranges::cend(cpp_forward(r)),
+                in
+            );
         }
     } is_iter_in{};
-}
 
-namespace stdsharp::details
-{
-    template<typename Fn>
-    struct index_fn
+    inline constexpr struct index_fn
     {
-        template<typename R, typename Diff = std::ranges::range_difference_t<R>>
-            requires std::invocable<Fn, R, Diff>
+        template<
+            std::ranges::random_access_range R,
+            typename Diff = std::ranges::range_difference_t<R>>
         constexpr decltype(auto) operator()(R&& r, const Diff& i) const
         {
-            return Fn{}(cpp_forward(r), i);
+            return std::ranges::begin(cpp_forward(r))[i];
         }
 
-        template<typename R, typename Diff = std::ranges::range_difference_t<R>, typename... Args>
-            requires(sizeof...(Args) >= 1) &&
-            std::invocable<index_fn, std::invoke_result_t<Fn, R, Diff>, Args...>
-        constexpr decltype(auto) operator()(R&& r, const Diff& i, Args&&... args) const
+        template<typename Rng, typename FirstArg, typename... Args>
+            requires requires {
+                requires sizeof...(Args) > 0;
+                requires std::invocable<index_fn, Rng, FirstArg>;
+                requires std::
+                    invocable<index_fn, std::invoke_result_t<index_fn, Rng, FirstArg>, Args...>;
+            }
+        [[nodiscard]] constexpr decltype(auto) operator()(
+            auto&& rng,
+            auto&& first_arg,
+            auto&&... args //
+        ) const
         {
-            return (*this)((*this)(cpp_forward(r), i), cpp_forward(args)...);
+            return (*this)((*this)(cpp_forward(rng), cpp_forward(first_arg)), cpp_forward(args)...);
         }
-    };
-}
+    } index{};
 
-namespace stdsharp
-{
-    inline constexpr details::index_fn<ranges::index_fn> index{};
+    inline constexpr struct index_at_fn
+    {
+        template<typename R, typename Diff = std::ranges::range_difference_t<R>>
+            requires std::ranges::sized_range<R> && std::invocable<index_fn, R, const Diff&>
+        constexpr decltype(auto) operator()(R&& r, const Diff& i) const
+        {
+            Expects(i < std::ranges::size(r));
+            return index(cpp_forward(r), i);
+        }
 
-    inline constexpr details::index_fn<ranges::at_fn> index_at{};
+        template<typename Rng, typename FirstArg, typename... Args>
+            requires requires {
+                requires sizeof...(Args) > 0;
+                requires std::invocable<index_at_fn, Rng, FirstArg>;
+                requires std::invocable<
+                    index_at_fn,
+                    std::invoke_result_t<index_at_fn, Rng, FirstArg>,
+                    Args...>;
+            }
+        [[nodiscard]] constexpr decltype(auto) operator()(
+            auto&& rng,
+            auto&& first_arg,
+            auto&&... args //
+        ) const
+        {
+            return (*this)((*this)(cpp_forward(rng), cpp_forward(first_arg)), cpp_forward(args)...);
+        }
+    } index_at{};
 }
 
 namespace stdsharp::views

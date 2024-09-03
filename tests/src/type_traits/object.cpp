@@ -33,3 +33,44 @@ SCENARIO("member", "[type traits][member]")
         };
     };
 }
+
+SCENARIO("lifetime_req compare", "[type traits][lifetime requirement]")
+{
+    STATIC_REQUIRE(lifetime_req::trivial() == lifetime_req::trivial());
+    STATIC_REQUIRE(lifetime_req::trivial() > lifetime_req::normal());
+    STATIC_REQUIRE(lifetime_req::normal() > lifetime_req::unique());
+    STATIC_REQUIRE(lifetime_req::unique() > lifetime_req::ill_formed());
+
+    constexpr lifetime_req req0{
+        .default_construct = expr_req::ill_formed,
+        .move_construct = expr_req::ill_formed,
+        .copy_construct = expr_req::well_formed,
+        .move_assign = expr_req::ill_formed,
+        .copy_assign = expr_req::ill_formed,
+        .destruct = expr_req::ill_formed,
+    };
+
+    constexpr lifetime_req req1{
+        .default_construct = expr_req::ill_formed,
+        .move_construct = expr_req::ill_formed,
+        .copy_construct = expr_req::ill_formed,
+        .move_assign = expr_req::no_exception,
+        .copy_assign = expr_req::no_exception,
+        .destruct = expr_req::ill_formed,
+    };
+
+    constexpr lifetime_req req2{
+        .default_construct = expr_req::ill_formed,
+        .move_construct = expr_req::ill_formed,
+        .copy_construct = expr_req::well_formed,
+        .move_assign = expr_req::no_exception,
+        .copy_assign = expr_req::no_exception,
+        .destruct = expr_req::ill_formed,
+    };
+
+    STATIC_REQUIRE((req0 <=> req1) == partial_ordering::unordered);
+
+    STATIC_REQUIRE(at_least(req0, req1) == req2);
+    STATIC_REQUIRE(req2 > req1);
+    STATIC_REQUIRE(req2 > req0);
+}

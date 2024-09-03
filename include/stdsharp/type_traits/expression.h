@@ -6,7 +6,7 @@ namespace stdsharp
     {
         ill_formed,
         well_formed,
-        no_exception,
+        no_exception
     };
 
     constexpr auto get_expr_req(const bool well_formed, const bool no_exception = false) noexcept

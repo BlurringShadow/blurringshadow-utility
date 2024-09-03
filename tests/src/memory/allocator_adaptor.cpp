@@ -1,5 +1,4 @@
 #include "stdsharp/memory/allocator_adaptor.h"
-
 #include "test.h"
 
 STDSHARP_TEST_NAMESPACES;
@@ -11,44 +10,32 @@ SCENARIO("allocator_adaptor", "[memory][allocator_adaptor]")
 {
     GIVEN("an allocator_adaptor")
     {
-        stdsharp::allocator_adaptor<std::allocator<int>> allocator;
+        int_adaptor allocator;
 
         WHEN("the allocator is default constructed")
         {
-            THEN("the allocator is equal to itself")
-            {
-                REQUIRE(allocator.is_equal(allocator));
-            }
+            THEN("the allocator is equal to itself") { REQUIRE(allocator == allocator); }
         }
 
         WHEN("the allocator is copy constructed")
         {
-            stdsharp::allocator_adaptor<std::allocator<int>> other(allocator);
+            int_adaptor other(allocator);
 
-            THEN("the allocator is equal to the other allocator")
-            {
-                REQUIRE(allocator.is_equal(other));
-            }
+            THEN("the allocator is equal to the other allocator") { REQUIRE(allocator == other); }
         }
 
         WHEN("the allocator is move constructed")
         {
-            stdsharp::allocator_adaptor<std::allocator<int>> other(std::move(allocator));
+            int_adaptor other(std::move(allocator));
 
-            THEN("the allocator is equal to the other allocator")
-            {
-                REQUIRE(allocator.is_equal(other));
-            }
+            THEN("the allocator is equal to the other allocator") { REQUIRE(allocator == other); }
         }
 
         WHEN("the allocator is constructed in place")
         {
-            stdsharp::allocator_adaptor<std::allocator<int>> other(std::in_place, 0);
+            int_adaptor other(std::in_place);
 
-            THEN("the allocator is equal to the other allocator")
-            {
-                REQUIRE(allocator.is_equal(other));
-            }
+            THEN("the allocator is equal to the other allocator") { REQUIRE(allocator == other); }
         }
     }
 }

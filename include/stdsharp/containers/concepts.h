@@ -15,11 +15,16 @@
 
 namespace stdsharp
 {
+
     template<typename T, auto Size>
     struct allocator_of<std::array<T, Size>>
     {
         using type = std::allocator<T>;
     };
+}
+
+namespace stdsharp::containers
+{
 
     template<typename Rng, typename ValueType>
     concept compatible_range = std::ranges::input_range<Rng> &&
@@ -154,7 +159,7 @@ namespace stdsharp
     };
 }
 
-namespace stdsharp::details
+namespace stdsharp::containers::details
 {
     template<typename... T, std::size_t... I>
     static consteval inherited<indexed_value<I, T>...>
@@ -263,13 +268,13 @@ namespace stdsharp::details
     };
 }
 
-namespace stdsharp
+namespace stdsharp::containers
 {
     template<typename Container, typename... Members>
     concept container = details::container<Container, details::container_members<Members...>>;
 }
 
-namespace stdsharp::details
+namespace stdsharp::containers::details
 {
     template<
         typename Container,
@@ -353,7 +358,7 @@ namespace stdsharp::details
     };
 }
 
-namespace stdsharp
+namespace stdsharp::containers
 {
     template<typename Container, typename... Members>
     concept reversible_container = container<Container, Members...> &&
@@ -371,7 +376,7 @@ namespace stdsharp
     concept contiguous_container = container<Container> && std::ranges::contiguous_range<Container>;
 }
 
-namespace stdsharp::details
+namespace stdsharp::containers::details
 {
     template<typename Container, typename... Args>
     struct container_optional_constructible
@@ -409,7 +414,7 @@ namespace stdsharp::details
         Node node,
         std::initializer_list<ValueType> il
     ) {
-        requires stdsharp::allocator_aware_container<Container, Members>;
+        requires containers::allocator_aware_container<Container, Members>;
 
         requires container_insertable<Container>;
 
@@ -607,7 +612,7 @@ namespace stdsharp::details
     };
 }
 
-namespace stdsharp
+namespace stdsharp::containers
 {
     template<typename Container, typename... Members>
     concept associative_like_container =

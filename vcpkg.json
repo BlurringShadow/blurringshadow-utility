@@ -2,10 +2,8 @@
   "name": "stdsharp",
   "version": "0.1.0",
   "dependencies": [
-    "range-v3",
     "ctre",
     "ms-gsl",
-    "catch2",
-    "nameof"
+    "catch2"
   ]
 }
