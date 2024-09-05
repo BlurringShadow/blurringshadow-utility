@@ -1,7 +1,7 @@
 #pragma once
 
+#include "../ranges/ranges.h"
 #include "allocator_traits.h"
-#include "stdsharp/ranges/ranges.h"
 
 namespace stdsharp
 {
@@ -131,5 +131,64 @@ namespace stdsharp
             allocator_traits::deallocate(alloc, data<>(dst_allocation), dst_allocation.size());
             dst_allocation = empty;
         }
+
+        template<typename>
+        class object;
+    };
+
+    template<allocator_req Alloc>
+    template<typename T>
+    class allocation_traits<Alloc>::object : unique_object
+    {
+        allocation allocation_;
+        bool has_value_ = false;
+
+        static constexpr auto self_cast = fwd_cast<object>;
+
+    public:
+        constexpr callocation allocation() const noexcept { return allocation_; }
+
+        constexpr const T* data() const noexcept
+        {
+            return pointer_cast<const T>(allocation_.begin());
+        }
+
+        constexpr T* data() noexcept { return pointer_cast<T>(allocation_.begin()); }
+
+        template<typename Self, typename U = forward_like_t<Self, T>>
+        constexpr U get(this Self&& self) noexcept
+        {
+            const auto ptr = self_cast(cpp_forward(self)).data();
+            assert_not_null(ptr);
+            return static_cast<U>(*ptr);
+        }
+
+        object() = default;
+
+        constexpr object(const struct allocation& allocation) noexcept: allocation_(allocation)
+        {
+            Expects(allocation.size() * sizeof(value_type) >= sizeof(T));
+        }
+
+        template<
+            typename... Args,
+            std::invocable<allocator_type&, T*, Args...> Ctor = allocator_traits::constructor>
+        constexpr object(const struct allocation& allocation, allocator_type& alloc, Args&&... args)
+            noexcept(nothrow_invocable<Ctor, allocator_type&, T*, Args...>):
+            object(allocation)
+        {
+            Ctor{}(alloc, data(), cpp_forward(args)...);
+
+            // TODO: https://github.com/llvm/llvm-project/issues/52837
+            has_value_ = true; // NOLINT(*-prefer-member-initializer)
+        }
+
+        constexpr object(const struct allocation& allocation, allocator_type& alloc, const object& other)
+            noexcept(nothrow_invocable<Ctor, allocator_type&, T*, Args...>):
+            object(allocation, alloc, other.get())
+        {
+        }
+
+        constexpr void construct_object(allocator_type& alloc, const object& obj) noexcept
     };
 }
