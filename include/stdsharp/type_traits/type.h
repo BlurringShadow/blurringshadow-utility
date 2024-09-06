@@ -349,8 +349,6 @@ namespace stdsharp
                     std::strong_ordering::less :
                     std::strong_ordering::greater;
         }
-
-        bool operator>(const cttid_t& other) const noexcept { return other.get().before(get()); }
     };
 
     template<typename T>

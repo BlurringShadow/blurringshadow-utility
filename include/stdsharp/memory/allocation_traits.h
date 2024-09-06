@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../ranges/ranges.h"
+#include "../utility/dispatcher.h"
 #include "allocator_traits.h"
 
 namespace stdsharp
@@ -63,7 +64,25 @@ namespace stdsharp
         using const_pointer = allocator_traits::const_pointer;
         using cvp = allocator_traits::const_void_pointer;
 
+        template<bool IsEqual, bool IsBefore>
+        using move_propagation = allocator_move_propagation_t<IsEqual, IsBefore>;
+
+        template<bool IsEqual, bool IsBefore>
+        using copy_propagation = allocator_copy_propagation_t<IsEqual, IsBefore>;
+
+        template<bool IsEqual>
+        using swap_propagation = allocator_swap_propagation_t<IsEqual>;
+
+        using no_move_propagation = allocator_no_move_propagation_t;
+
+        using no_copy_propagation = allocator_no_copy_propagation_t;
+
+        using no_swap_propagation = allocator_no_swap_propagation_t;
+
     private:
+        template<lifetime_req>
+        struct dynamic;
+
         template<
             typename Ptr = const_pointer,
             typename Base =
@@ -82,10 +101,17 @@ namespace stdsharp
             {
             }
 
-            constexpr auto cbegin() const noexcept { return std::ranges::cbegin(*this); }
+            [[nodiscard]] constexpr auto cbegin() const noexcept
+            {
+                return std::ranges::cbegin(*this);
+            }
 
-            constexpr auto cend() const noexcept { return std::ranges::cend(*this); }
+            [[nodiscard]] constexpr auto cend() const noexcept { return std::ranges::cend(*this); }
         };
+
+        using ctor = allocator_traits::constructor;
+
+        using dtor = allocator_traits::destructor;
 
     public:
         struct callocation : basic_allocation<>
@@ -111,13 +137,13 @@ namespace stdsharp
             }
         } empty;
 
-        static constexpr allocation
+        [[nodiscard]] static constexpr allocation
             allocate(allocator_type& alloc, const size_type size, const cvp hint = nullptr)
         {
             return {allocator_traits::allocate(alloc, size, hint), size};
         }
 
-        static constexpr allocation try_allocate(
+        [[nodiscard]] static constexpr allocation try_allocate(
             allocator_type& alloc,
             const size_type size,
             const cvp hint = nullptr
@@ -132,63 +158,399 @@ namespace stdsharp
             dst_allocation = empty;
         }
 
-        template<typename>
-        class object;
+        static constexpr struct object_construct_t
+        {
+        } object_construct{};
+
+        static constexpr struct object_assign_t
+        {
+        } object_assign{};
+
+        static constexpr struct object_destroy_t
+        {
+        } object_destroy{};
+
+        static constexpr struct object_swap_t
+        {
+        } object_swap{};
+
+        template<typename T>
+        struct object;
+
+        static constexpr struct assign_fn
+        {
+            template<bool IsEqual, typename T>
+            constexpr void operator()(
+                const move_propagation<IsEqual, true> /*unused*/,
+                allocator_type& src_alloc,
+                allocation& src,
+                const object<T>& obj
+            )
+            {
+                obj(object_destroy, src, src_alloc);
+                deallocate(src_alloc, src);
+            }
+
+            template<bool IsEqual, typename T>
+            constexpr void operator()(
+                const move_propagation<IsEqual, false> /*unused*/,
+                allocator_type& /*unused*/,
+                const allocation& src,
+                const allocation& dst,
+                const object<T>& /*unused*/,
+                auto&& /*unused*/
+            )
+            {
+                src = cpp_move(dst);
+            }
+        } assign{};
+
+        template<lifetime_req Req>
+        using dynamic_object = object<dynamic<allocator_traits::template type_req<fake_type<Req>>>>;
+
+        template<>
+        class object<dynamic<lifetime_req::ill_formed()>>
+        {
+            allocation allocation_;
+            cttid_t type_;
+
+        public:
+            [[nodiscard]] constexpr callocation allocation() const noexcept { return allocation_; }
+
+            [[nodiscard]] constexpr cttid_t type() const noexcept { return type_; }
+
+            [[nodiscard]] constexpr bool has_value() const noexcept { return type() != cttid_t{}; }
+
+            template<typename T>
+            [[nodiscard]] constexpr const T* data() const noexcept
+            {
+                assert_equal(type(), cttid<T>);
+                return pointer_cast<const T>(allocation_.begin());
+            }
+
+            template<typename T>
+            [[nodiscard]] constexpr T* data() noexcept
+            {
+                assert_equal(type(), cttid<T>);
+                return pointer_cast<T>(allocation_.begin());
+            }
+
+            template<typename T, typename Self, typename U = forward_like_t<Self, T>>
+            [[nodiscard]] constexpr U get(this Self&& self) noexcept
+            {
+                const auto ptr = fwd_cast<object>(cpp_forward(self)).template data<T>();
+                assert_not_null(ptr);
+                return static_cast<U>(*ptr);
+            }
+
+            template<
+                typename T,
+                typename... Args,
+                std::invocable<allocator_type&, T*, Args...> Ctor = allocator_traits::constructor>
+            constexpr void emplace(allocator_type& alloc, Args&&... args)
+                noexcept(nothrow_invocable<Ctor, allocator_type&, T*, Args...>)
+            {
+                Expects(allocation_.size() * sizeof(value_type) >= sizeof(T));
+                Ctor{}(alloc, data(), cpp_forward(args)...);
+                type_ = cttid<T>;
+            }
+
+            constexpr void destroy(allocator_type& alloc) noexcept
+            {
+                if(!has_value()) return;
+
+                allocator_traits::destroy(alloc, data());
+                type_ = cttid_t{};
+            }
+
+            object() = default;
+
+            object(const object&) = delete;
+
+            constexpr object(object&& other) noexcept:
+                allocation_(other.allocation_), type_(other.type_)
+            {
+                other = {};
+            }
+
+            object& operator=(const object&) = delete;
+
+            constexpr object& operator=(object&& other) noexcept
+            {
+                if(this == &other) return *this;
+
+                destroy();
+                allocation_ = other.allocation_;
+                type_ = other.type_;
+                other = {};
+
+                return *this;
+            }
+
+            constexpr ~object() { destroy(); }
+
+            constexpr object(const struct allocation& allocation) noexcept: allocation_(allocation)
+            {
+            }
+
+            constexpr object(
+                const struct allocation& allocation,
+                allocator_type& alloc,
+                auto&&... args
+            ) noexcept(noexcept(emplace(alloc, cpp_forward(args)...)))
+                requires requires { emplace(alloc, cpp_forward(args)...); }
+                : object(allocation)
+            {
+                emplace(alloc, cpp_forward(args)...);
+            }
+        };
+
+        template<lifetime_req Req>
+        class object<dynamic<Req>>
+        {
+        public:
+            static constexpr auto req = Req;
+
+        private:
+            allocation allocation_;
+            cttid_t type_;
+            invocables<
+                dispatcher<req.default_construct, void>,
+                dispatcher<req.move_construct, void>,
+                dispatcher<req.copy_construct, void>,
+                dispatcher<req.move_assign, void>,
+                dispatcher<req.copy_assign, void>,
+                dispatcher<req.destruct, void>,
+                dispatcher<req.swap, void>>
+                dispatchers_;
+
+            static constexpr auto self_cast = fwd_cast<object>;
+
+        public:
+            [[nodiscard]] constexpr callocation allocation() const noexcept { return allocation_; }
+
+            [[nodiscard]] constexpr cttid_t type() const noexcept { return type_; }
+
+            [[nodiscard]] constexpr bool has_value() const noexcept { return type() != cttid_t{}; }
+
+            template<typename T>
+            [[nodiscard]] constexpr const T* data() const noexcept
+            {
+                assert_equal(type(), cttid<T>);
+                return pointer_cast<const T>(allocation_.begin());
+            }
+
+            template<typename T>
+            [[nodiscard]] constexpr T* data() noexcept
+            {
+                assert_equal(type(), cttid<T>);
+                return pointer_cast<T>(allocation_.begin());
+            }
+
+            template<typename T, typename Self, typename U = forward_like_t<Self, T>>
+            [[nodiscard]] constexpr U get(this Self&& self) noexcept
+            {
+                const auto ptr = self_cast(cpp_forward(self)).template data<T>();
+                assert_not_null(ptr);
+                return static_cast<U>(*ptr);
+            }
+
+            template<
+                typename T,
+                typename... Args,
+                std::invocable<allocator_type&, T*, Args...> Ctor = allocator_traits::constructor>
+
+            constexpr void emplace(allocator_type& alloc, Args&&... args)
+                noexcept(nothrow_invocable<Ctor, allocator_type&, T*, Args...>)
+            {
+                Expects(allocation_.size() * sizeof(value_type) >= sizeof(T));
+                Ctor{}(alloc, data(), cpp_forward(args)...);
+                type_ = cttid<T>;
+            }
+
+            constexpr void destroy(allocator_type& alloc) noexcept
+            {
+                if(!has_value_) return;
+
+                allocator_traits::destroy(alloc, data());
+                has_value_ = false;
+            }
+
+            object() = default;
+
+            object(const object&) = delete;
+
+            object(object&& other) = default;
+
+            object& operator=(const object&) = delete;
+
+            object& operator=(object&& other) = default;
+
+            constexpr ~object() { destroy(); }
+
+            constexpr object(const struct allocation& allocation) noexcept: allocation_(allocation)
+            {
+                Expects(allocation.size() * sizeof(value_type) >= sizeof(T));
+            }
+
+            constexpr object(
+                const struct allocation& allocation,
+                allocator_type& alloc,
+                auto&&... args
+            ) noexcept(noexcept(emplace(alloc, cpp_forward(args)...)))
+                requires requires { emplace(alloc, cpp_forward(args)...); }
+                : object(allocation)
+            {
+                emplace(alloc, cpp_forward(args)...);
+            }
+
+            constexpr object(
+                const struct allocation& allocation,
+                allocator_type& alloc,
+                const object& other
+            ) noexcept( //
+                nothrow_constructible_from<
+                    object,
+                    const struct allocation&,
+                    allocator_type&,
+                    const T&> //
+            )
+                requires std::
+                    constructible_from<object, const struct allocation&, allocator_type&, const T&>
+                : object(allocation, alloc, other.get())
+            {
+            }
+
+            constexpr object(
+                const struct allocation& allocation,
+                allocator_type& alloc,
+                object&& other
+            ) noexcept( //
+                nothrow_constructible_from<
+                    object,
+                    const struct allocation&,
+                    allocator_type&,
+                    const T&> //
+            )
+                requires std::
+                    constructible_from<object, const struct allocation&, allocator_type&, T>
+                : object(allocation, alloc, cpp_move(other).get())
+            {
+            }
+
+            constexpr void assign(allocator_type& alloc, const T& value)
+                noexcept(nothrow_copy_assignable<T> && noexcept(emplace(alloc, value)))
+                requires requires {
+                    requires copy_assignable<T>;
+                    emplace(alloc, value);
+                }
+            {
+                if(has_value_) get() = value;
+                else emplace(alloc, value);
+            }
+
+            constexpr void assign(allocator_type& alloc, T&& value)
+                noexcept(nothrow_move_assignable<T> && noexcept(emplace(alloc, cpp_move(value))))
+                requires requires {
+                    requires move_assignable<T>;
+                    emplace(alloc, cpp_move(value));
+                }
+            {
+                if(has_value_) get() = cpp_move(value);
+                else emplace(alloc, cpp_move(value));
+            }
+        };
     };
 
     template<allocator_req Alloc>
     template<typename T>
-    class allocation_traits<Alloc>::object : unique_object
+    struct allocation_traits<Alloc>::object
     {
-        allocation allocation_;
-        bool has_value_ = false;
-
-        static constexpr auto self_cast = fwd_cast<object>;
-
-    public:
-        constexpr callocation allocation() const noexcept { return allocation_; }
-
-        constexpr const T* data() const noexcept
+        static constexpr struct data_fn
         {
-            return pointer_cast<const T>(allocation_.begin());
+            [[nodiscard]] constexpr T* operator()(const allocation& allocation) const noexcept
+            {
+                return pointer_cast<T>(allocation.begin());
+            }
+
+            [[nodiscard]] constexpr T* operator()(const callocation& allocation) const noexcept
+            {
+                return pointer_cast<T>(allocation.begin());
+            }
+        } data{};
+
+        static constexpr struct get_fn
+        {
+            [[nodiscard]] constexpr T& operator()(const allocation& allocation) const noexcept
+            {
+                return *data(allocation);
+            }
+
+            [[nodiscard]] constexpr T& operator()(const callocation& allocation) const noexcept
+            {
+                return *data(allocation);
+            }
+        } get{};
+
+        constexpr void operator()(
+            const object_construct_t /*unused*/,
+            allocator_type& alloc,
+            allocation& src,
+            const allocation& other //
+        ) const noexcept(nothrow_invocable<ctor, allocator_type&, T*, const T&>)
+            requires std::invocable<ctor, allocator_type&, T*, const T&>
+        {
+            ctor{}(alloc, data(src), get(other));
         }
 
-        constexpr T* data() noexcept { return pointer_cast<T>(allocation_.begin()); }
-
-        template<typename Self, typename U = forward_like_t<Self, T>>
-        constexpr U get(this Self&& self) noexcept
+        constexpr void operator()(
+            const object_construct_t /*unused*/,
+            allocator_type& alloc,
+            allocation& src,
+            const callocation& other //
+        ) const noexcept(nothrow_invocable<ctor, allocator_type&, T*, const T&>)
+            requires std::invocable<ctor, allocator_type&, T*, const T&>
         {
-            const auto ptr = self_cast(cpp_forward(self)).data();
-            assert_not_null(ptr);
-            return static_cast<U>(*ptr);
+            ctor{}(alloc, data(src), get(other));
         }
 
-        object() = default;
-
-        constexpr object(const struct allocation& allocation) noexcept: allocation_(allocation)
+        constexpr void operator()(
+            const object_destroy_t /*unused*/,
+            allocator_type& alloc,
+            const allocation& src
+        ) const noexcept
         {
-            Expects(allocation.size() * sizeof(value_type) >= sizeof(T));
+            dtor{}(alloc, data(src));
         }
 
-        template<
-            typename... Args,
-            std::invocable<allocator_type&, T*, Args...> Ctor = allocator_traits::constructor>
-        constexpr object(const struct allocation& allocation, allocator_type& alloc, Args&&... args)
-            noexcept(nothrow_invocable<Ctor, allocator_type&, T*, Args...>):
-            object(allocation)
+        constexpr void operator()(
+            const object_assign_t /*unused*/,
+            const allocation& src,
+            const allocation& other
+        ) const noexcept(nothrow_move_assignable<T>)
+            requires move_assignable<T>
         {
-            Ctor{}(alloc, data(), cpp_forward(args)...);
-
-            // TODO: https://github.com/llvm/llvm-project/issues/52837
-            has_value_ = true; // NOLINT(*-prefer-member-initializer)
+            get(src) = cpp_move(get(other));
         }
 
-        constexpr object(const struct allocation& allocation, allocator_type& alloc, const object& other)
-            noexcept(nothrow_invocable<Ctor, allocator_type&, T*, Args...>):
-            object(allocation, alloc, other.get())
+        constexpr void operator()(
+            const object_assign_t /*unused*/,
+            const allocation& src,
+            const callocation& other
+        ) const noexcept(nothrow_copy_assignable<T>)
+            requires copy_assignable<T>
         {
+            get(src) = get(other);
         }
 
-        constexpr void construct_object(allocator_type& alloc, const object& obj) noexcept
+        constexpr void operator()(
+            const object_swap_t /*unused*/,
+            const allocation& src,
+            const allocation& other
+        ) const noexcept(nothrow_swappable<T>)
+            requires std::swappable<T>
+        {
+            std::ranges::swap(get(src), get(other));
+        }
     };
 }

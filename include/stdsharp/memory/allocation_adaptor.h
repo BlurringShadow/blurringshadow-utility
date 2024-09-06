@@ -7,6 +7,10 @@
 namespace stdsharp
 {
     template<allocator_req Allocator, typename T = Allocator::value_type>
+    struct allocation_object_traits
+    {
+
+    }
 
 }
 
