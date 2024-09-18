@@ -400,39 +400,4 @@ namespace stdsharp
 
     template<typename T>
     using allocator_of_t = allocator_of<T>::type;
-
-    struct allocator_no_move_propagation_t
-    {
-    };
-
-    struct allocator_no_copy_propagation_t
-    {
-    };
-
-    struct allocator_no_swap_propagation_t
-    {
-    };
-
-    template<bool IsEqual, bool IsBefore>
-    struct allocator_propagation_t
-    {
-        static constexpr auto is_equal = IsEqual;
-
-        static constexpr auto is_before = IsBefore;
-    };
-
-    template<bool IsEqual, bool IsBefore>
-    struct allocator_move_propagation_t : allocator_propagation_t<IsEqual, IsBefore>
-    {
-    };
-
-    template<bool IsEqual, bool IsBefore>
-    struct allocator_copy_propagation_t : allocator_propagation_t<IsEqual, IsBefore>
-    {
-    };
-
-    template<bool IsBefore>
-    struct allocator_swap_propagation_t
-    {
-    };
 }

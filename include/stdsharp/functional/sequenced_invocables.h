@@ -37,7 +37,7 @@ namespace stdsharp
             noexcept(nothrow_invocable<Fn, Args...>)
         {
             return invoke(
-                cpo::get_element<I>(fwd_cast<sequenced_invocables>(cpp_forward(self))),
+                get_element<I>(fwd_cast<sequenced_invocables>(cpp_forward(self))),
                 cpp_forward(args)...
             );
         }

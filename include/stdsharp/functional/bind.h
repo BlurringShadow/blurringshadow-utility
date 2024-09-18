@@ -48,7 +48,7 @@ namespace stdsharp::details
             ) noexcept(nothrow_invocable<Func, get_element_t<I, Indexed>..., T...>)
             {
                 return cpp_forward(self).func(
-                    cpo::get_element<I>(cpp_forward(indexed))...,
+                    get_element<I>(cpp_forward(indexed))...,
                     cpp_forward(call_args)...
                 );
             }
@@ -70,7 +70,7 @@ namespace stdsharp::details
             {
                 return cpp_forward(self).func(
                     cpp_forward(call_args)...,
-                    cpo::get_element<I>(cpp_forward(indexed))...
+                    get_element<I>(cpp_forward(indexed))...
                 );
             }
         };

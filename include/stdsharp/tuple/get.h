@@ -2,7 +2,7 @@
 
 #include "../concepts/object.h"
 
-namespace stdsharp::cpo::inline cpo_impl
+namespace stdsharp::get_cpo
 {
     void get(auto&&) = delete;
 
@@ -25,9 +25,6 @@ namespace stdsharp::cpo::inline cpo_impl
     };
 
     template<std::size_t I>
-    inline constexpr get_element_fn<I> get_element;
-
-    template<std::size_t I>
     struct cget_element_fn
     {
         template<typename T>
@@ -46,16 +43,25 @@ namespace stdsharp::cpo::inline cpo_impl
             return get_element<I>(cpp_move(t));
         }
     };
-
-    template<std::size_t I>
-    inline constexpr cget_element_fn<I> cget_element;
 }
 
 namespace stdsharp
 {
-    template<std::size_t I, typename T>
-    using get_element_t = decltype(cpo::get_element<I>(std::declval<T>()));
+    template<std::size_t I>
+    using get_element_fn = get_cpo::get_element_fn<I>;
+
+    template<std::size_t I>
+    using cget_element_fn = get_cpo::cget_element_fn<I>;
+
+    template<std::size_t I>
+    inline constexpr get_element_fn<I> get_element;
+
+    template<std::size_t I>
+    inline constexpr cget_element_fn<I> cget_element;
 
     template<std::size_t I, typename T>
-    using cget_element_t = decltype(cpo::cget_element<I>(std::declval<T>()));
+    using get_element_t = decltype(get_element<I>(std::declval<T>()));
+
+    template<std::size_t I, typename T>
+    using cget_element_t = decltype(cget_element<I>(std::declval<T>()));
 }

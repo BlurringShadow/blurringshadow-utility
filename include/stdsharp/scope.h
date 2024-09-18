@@ -20,9 +20,9 @@ namespace stdsharp::details
 
             bool released_ = false;
 
-            constexpr auto& get() noexcept { return cpo::get_element<0>(compressed_); }
+            constexpr auto& get() noexcept { return get_element<0>(compressed_); }
 
-            constexpr auto& get_deleter() noexcept { return cpo::get_element<1>(compressed_); }
+            constexpr auto& get_deleter() noexcept { return get_element<1>(compressed_); }
 
         public:
             impl() = default;
@@ -52,11 +52,11 @@ namespace stdsharp::details
 
             constexpr ~impl() { release(); }
 
-            constexpr auto& get() const noexcept { return cpo::get_element<0>(compressed_); }
+            constexpr auto& get() const noexcept { return get_element<0>(compressed_); }
 
             constexpr auto& get_deleter() const noexcept
             {
-                return cpo::get_element<1>(compressed_);
+                return get_element<1>(compressed_);
             }
 
             constexpr void release() noexcept
